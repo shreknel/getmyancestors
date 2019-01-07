@@ -34,6 +34,13 @@ import re
 from translation import translations
 
 try:
+    from num2words import num2words
+except ImportError:
+    sys.stderr.write('You need to install the num2words module first\n')
+    sys.stderr.write('(run this in your terminal: "python3 -m pip install num2words" or "python3 -m pip install --user num2words")\n')
+    exit(2)
+
+try:
     import requests
 except ImportError:
     sys.stderr.write('You need to install the requests module first\n')
@@ -945,7 +952,7 @@ if __name__ == '__main__':
         if not todo:
             break
         done |= todo
-        print(_('Download ') + str(i + 1) + _('th generation of ancestors...'))
+        print(_('Download ') + num2words(i + 1, to='ordinal_num', lang=fs.lang) + _(' generation of ancestors...'))
         todo = tree.add_parents(todo) - done
 
     # download descendants
@@ -955,7 +962,7 @@ if __name__ == '__main__':
         if not todo:
             break
         done |= todo
-        print(_('Download ') + str(i + 1) + _('th generation of descendants...'))
+        print(_('Download ') + num2words(i + 1, to='ordinal_num', lang=fs.lang) + _(' generation of descendants...'))
         todo = tree.add_children(todo) - done
 
     # download spouses
