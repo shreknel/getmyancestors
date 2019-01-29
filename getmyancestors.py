@@ -921,6 +921,27 @@ if __name__ == '__main__':
 
     time_count = time.time()
 
+    # Report settings used when getmyancestors.py is executed.
+    redact_password = True
+    setting_list = [string for setting in [[
+            str('-' + action.dest + ' ' + action.help),
+            '******' if action.dest == 'p' and redact_password 
+                else str(vars(args)[action.dest].name) if hasattr(vars(args)[action.dest], 'name')
+                else str(vars(args)[action.dest])]
+            for action in vars(parser)['_actions']] for string in setting]
+    setting_list.insert(0,time.strftime('%X %x %Z'))
+    setting_list.insert(0,'time stamp: ')
+
+    formatting = '{:74}{:\t>1}\n' * int(len(setting_list) / 2)
+    settings_output = ((
+                formatting
+                ).format(
+                    *setting_list))
+    print(settings_output)
+
+    with open(args.o.name.split('.')[0] + '.settings', 'w') as settings_record:
+        settings_record.write(settings_output)
+
     # initialize a FamilySearch session and a family tree object
     print('Login to FamilySearch...')
     fs = Session(username, password, args.v, args.l, args.t)
