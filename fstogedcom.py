@@ -18,12 +18,6 @@ from getmyancestors import Session, Tree, Indi, Fam
 from mergemyancestors import Gedcom
 from translation import translations
 
-try:
-    from num2words import num2words
-except ImportError:
-    sys.stderr.write('You need to install the num2words module first\n')
-    sys.stderr.write('(run this in your terminal: "python3 -m pip install num2words" or "python3 -m pip install --user num2words")\n')
-    exit(2)
 
 tmp_dir = os.path.join(tempfile.gettempdir(), 'fstogedcom')
 global cache
@@ -432,7 +426,7 @@ class Download(Frame):
             if not todo:
                 break
             done |= todo
-            self.info(_('Download ') + num2words(i + 1, to='ordinal_num', lang=lang) + _(' generation of ancestors...'))
+            self.info(_('Download ') + str(i + 1) + _('th generation of ancestors...'))
             todo = self.tree.add_parents(todo) - done
 
         todo = set(self.tree.indi.keys())
@@ -441,7 +435,7 @@ class Download(Frame):
             if not todo:
                 break
             done |= todo
-            self.info(_('Download ') + num2words(i + 1, to='ordinal_num', lang=lang) + _(' generation of descendants...'))
+            self.info(_('Download ') + str(i + 1) + _('th generation of descendants...'))
             todo = self.tree.add_children(todo) - done
 
         if self.options.spouses.get():
