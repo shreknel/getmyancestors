@@ -935,7 +935,7 @@ if __name__ == '__main__':
 
     # add list of starting individuals to the family tree
     todo = args.i if args.i else [fs.get_userid()]
-    print(_('Download starting individuals...'))
+    print(_('Downloading starting individuals...'))
     tree.add_indis(todo)
 
     # download ancestors
@@ -945,7 +945,7 @@ if __name__ == '__main__':
         if not todo:
             break
         done |= todo
-        print(_('Download ') + str(i + 1) + _('th generation of ancestors...'))
+        print(_('Downloading %s. of generations of ancestors...') % (i + 1))
         todo = tree.add_parents(todo) - done
 
     # download descendants
@@ -955,12 +955,12 @@ if __name__ == '__main__':
         if not todo:
             break
         done |= todo
-        print(_('Download ') + str(i + 1) + _('th generation of descendants...'))
+        print(_('Downloading %s. of generations of descendants...') % (i + 1))
         todo = tree.add_children(todo) - done
 
     # download spouses
     if args.m:
-        print(_('Download spouses and marriage information...'))
+        print(_('Downloading spouses and marriage information...'))
         todo = set(tree.indi.keys())
         tree.add_spouses(todo)
 
@@ -981,7 +981,7 @@ if __name__ == '__main__':
             await future
 
     loop = asyncio.get_event_loop()
-    print(_('Download notes') + (((',' if args.r else _(' and')) + _(' ordinances')) if args.c else '') + (_(' and contributors') if args.r else '') + '...')
+    print(_('Downloading notes') + (((',' if args.r else _(' and')) + _(' ordinances')) if args.c else '') + (_(' and contributors') if args.r else '') + '...')
     loop.run_until_complete(download_stuff(loop))
 
     # compute number for family relationships and print GEDCOM file

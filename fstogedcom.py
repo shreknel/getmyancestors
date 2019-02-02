@@ -417,7 +417,7 @@ class Download(Frame):
         self.form.destroy()
         self.title.config(text='FamilySearch to GEDCOM')
         self.btn_valid.config(state='disabled')
-        self.info(_('Download starting individuals...'))
+        self.info(_('Downloading starting individuals...'))
         self.info_tree = True
         self.tree.add_indis(todo)
         todo = set(todo)
@@ -426,7 +426,7 @@ class Download(Frame):
             if not todo:
                 break
             done |= todo
-            self.info(_('Download ') + str(i + 1) + _('th generation of ancestors...'))
+            self.info(_('Downloading %s. of generations of ancestors...') % (i + 1))
             todo = self.tree.add_parents(todo) - done
 
         todo = set(self.tree.indi.keys())
@@ -435,11 +435,11 @@ class Download(Frame):
             if not todo:
                 break
             done |= todo
-            self.info(_('Download ') + str(i + 1) + _('th generation of descendants...'))
+            self.info(_('Downloading %s. of generations of descendants...') % (i + 1))
             todo = self.tree.add_children(todo) - done
 
         if self.options.spouses.get():
-            self.info(_('Download spouses and marriage information...'))
+            self.info(_('Downloading spouses and marriage information...'))
             todo = set(self.tree.indi.keys())
             self.tree.add_spouses(todo)
         ordi = self.options.ordinances.get()
@@ -461,7 +461,7 @@ class Download(Frame):
                 await future
 
         loop = asyncio.get_event_loop()
-        self.info(_('Download notes') + (((',' if cont else _(' and')) + _(' ordinances')) if ordi else '') + (_(' and contributors') if cont else '') + '...')
+        self.info(_('Downloading notes') + (((',' if cont else _(' and')) + _(' ordinances')) if ordi else '') + (_(' and contributors') if cont else '') + '...')
         loop.run_until_complete(download_stuff(loop))
 
         self.tree.reset_num()
