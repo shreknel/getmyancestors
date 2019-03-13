@@ -40,6 +40,13 @@ except ImportError:
     sys.stderr.write('(run this in your terminal: "python3 -m pip install requests" or "python3 -m pip install --user requests")\n')
     exit(2)
 
+try:
+    import babelfish
+except ImportError:
+    sys.stderr.write('You need to install the babelfish module first\n')
+    sys.stderr.write('(run this in your terminal: "python3 -m pip install babelfish" or "python3 -m pip install --user babelfish")\n')
+    exit(2)
+
 MAX_PERSONS = 200  # is subject to change: see https://www.familysearch.org/developers/docs/api/tree/Persons_resource
 
 FACT_TAGS = {
@@ -112,7 +119,7 @@ class Session:
         self.verbose = verbose
         self.logfile = logfile
         self.timeout = timeout
-        self.fid = self.lang = None
+        self.fid = self.lang = self.display_name = None
         self.counter = 0
         self.logged = self.login()
 
@@ -225,6 +232,7 @@ class Session:
         if data:
             self.fid = data['users'][0]['personId']
             self.lang = data['users'][0]['preferredLanguage']
+            self.display_name = data['users'][0]['displayName']
 
     def get_userid(self):
         if not self.fid:
@@ -865,8 +873,18 @@ class Tree:
         file.write('0 HEAD\n')
         file.write('1 CHAR UTF-8\n')
         file.write('1 GEDC\n')
-        file.write('2 VERS 5.5\n')
+        file.write('2 VERS 5.5.1\n')
         file.write('2 FORM LINEAGE-LINKED\n')
+        file.write('1 SOUR getmyancestors\n')
+        file.write('2 VERS 1.0\n')
+        file.write('2 NAME getmyancestors\n')
+        file.write('1 DATE ' + time.strftime('%d %b %Y') + '\n')
+        file.write('2 TIME ' + time.strftime('%H:%M:%S') + '\n')
+        file.write('1 SUBM @SUBM@\n')
+        file.write('0 @SUBM@ SUBM\n')
+        file.write('1 NAME ' + self.fs.display_name + '\n')
+        file.write('1 LANG ' + babelfish.Language.fromalpha2(self.fs.lang).name + '\n')
+
         for fid in sorted(self.indi, key=lambda x: self.indi.__getitem__(x).num):
             self.indi[fid].print(file)
         for husb, wife in sorted(self.fam, key=lambda x: self.fam.__getitem__(x).num):
