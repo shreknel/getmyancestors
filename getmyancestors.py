@@ -913,6 +913,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', action="store_true", default=False, help='Add LDS ordinances (need LDS account) [False]')
     parser.add_argument("-v", action="store_true", default=False, help="Increase output verbosity [False]")
     parser.add_argument('-t', metavar='<INT>', type=int, default=60, help='Timeout in seconds [60]')
+    parser.add_argument('--redact-password', action="store_true", default=False, help="Redact password from .settings file [False]")
     try:
         parser.add_argument('-o', metavar='<FILE>', type=argparse.FileType('w', encoding='UTF-8'), default=sys.stdout, help='output GEDCOM file [stdout]')
         parser.add_argument('-l', metavar='<FILE>', type=argparse.FileType('w', encoding='UTF-8'), default=sys.stderr, help='output log file [stderr]')
@@ -940,25 +941,34 @@ if __name__ == '__main__':
     time_count = time.time()
 
     # Report settings used when getmyancestors.py is executed.
-    redact_password = True
-    setting_list = [string for setting in [[
-            str('-' + action.dest + ' ' + action.help),
-            '******' if action.dest == 'p' and redact_password 
-                else str(vars(args)[action.dest].name) if hasattr(vars(args)[action.dest], 'name')
+
+    setting_list = [
+        string for setting in [
+            [
+                str('-' + action.dest + ' ' + action.help),
+                username
+                    if action.dest is 'u'
+                else '******'
+                    if action.dest is 'p' and args.redact_password
+                else password
+                    if action.dest is 'p'
+                else str(vars(args)[action.dest].name)
+                    if hasattr(vars(args)[action.dest], 'name')
                 else str(vars(args)[action.dest])]
             for action in vars(parser)['_actions']] for string in setting]
-    setting_list.insert(0,time.strftime('%X %x %Z'))
-    setting_list.insert(0,'time stamp: ')
+    setting_list.insert(0, time.strftime('%X %x %Z'))
+    setting_list.insert(0, 'time stamp: ')
 
     formatting = '{:74}{:\t>1}\n' * int(len(setting_list) / 2)
     settings_output = ((
                 formatting
                 ).format(
                     *setting_list))
-    print(settings_output)
 
-    with open(args.o.name.split('.')[0] + '.settings', 'w') as settings_record:
-        settings_record.write(settings_output)
+    if not (args.o.name == '<stdout>'):
+        with open(
+            args.o.name.split('.')[0] + '.settings', 'w') as settings_record:
+                settings_record.write(settings_output)
 
     # initialize a FamilySearch session and a family tree object
     print('Login to FamilySearch...')
