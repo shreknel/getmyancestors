@@ -1,3 +1,5 @@
 *.pyc
 *.ged
 *.log
+.vscode/
+scratchpad.py
