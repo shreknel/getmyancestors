@@ -949,7 +949,7 @@ if __name__ == '__main__':
                 username
                     if action.dest is 'u'
                 else '******'
-                    if action.dest is 'p' and args.redact_password
+                    if action.dest is 'p' and not args.redact_password
                 else password
                     if action.dest is 'p'
                 else str(vars(args)[action.dest].name)
