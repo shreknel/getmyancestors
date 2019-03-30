@@ -913,7 +913,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', action="store_true", default=False, help='Add LDS ordinances (need LDS account) [False]')
     parser.add_argument("-v", action="store_true", default=False, help="Increase output verbosity [False]")
     parser.add_argument('-t', metavar='<INT>', type=int, default=60, help='Timeout in seconds [60]')
-    parser.add_argument('--redact-password', action="store_true", default=False, help="Redact password from .settings file [False]")
+    parser.add_argument('--show-password', action="store_true", default=False, help="Show password in .settings file [False]")
     try:
         parser.add_argument('-o', metavar='<FILE>', type=argparse.FileType('w', encoding='UTF-8'), default=sys.stdout, help='output GEDCOM file [stdout]')
         parser.add_argument('-l', metavar='<FILE>', type=argparse.FileType('w', encoding='UTF-8'), default=sys.stderr, help='output log file [stderr]')
@@ -948,9 +948,9 @@ if __name__ == '__main__':
                 str('-' + action.dest + ' ' + action.help),
                 username
                     if action.dest is 'u'
-                else '******'
-                    if action.dest is 'p' and not args.redact_password
                 else password
+                    if action.dest is 'p' and args.show_password
+                else '******'
                     if action.dest is 'p'
                 else str(vars(args)[action.dest].name)
                     if hasattr(vars(args)[action.dest], 'name')
