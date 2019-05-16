@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# coding: utf-8
 """
    mergemyancestors.py - Merge GEDCOM data from FamilySearch Tree
    Copyright (C) 2014-2016 Giulio Genovese (giulio.genovese@gmail.com)
@@ -29,7 +29,7 @@ import sys
 import argparse
 
 # local import
-from getmyancestors import *
+import getmyancestors as gt
 
 sys.path.append(os.path.dirname(sys.argv[0]))
 
@@ -38,11 +38,12 @@ def reversed_dict(d):
     return {val: key for key, val in d.items()}
 
 
-FACT_TYPES = reversed_dict(FACT_TAGS)
-ORDINANCES = reversed_dict(ORDINANCES_STATUS)
+FACT_TYPES = reversed_dict(gt.FACT_TAGS)
+ORDINANCES = reversed_dict(gt.ORDINANCES_STATUS)
 
 
 class Gedcom:
+    """ Parse a GEDCOM file into a Tree """
 
     def __init__(self, file, tree):
         self.f = file
@@ -61,31 +62,34 @@ class Gedcom:
         self.__add_id()
 
     def __parse(self):
+        """ Parse the GEDCOM file into self.tree """
         while self.__get_line():
-            if self.tag == 'INDI':
-                self.num = int(self.pointer[2:len(self.pointer) - 1])
-                self.indi[self.num] = Indi(tree=self.tree, num=self.num)
+            if self.tag == "INDI":
+                self.num = int(self.pointer[2 : len(self.pointer) - 1])
+                self.indi[self.num] = gt.Indi(tree=self.tree, num=self.num)
                 self.__get_indi()
-            elif self.tag == 'FAM':
-                self.num = int(self.pointer[2:len(self.pointer) - 1])
+            elif self.tag == "FAM":
+                self.num = int(self.pointer[2 : len(self.pointer) - 1])
                 if self.num not in self.fam:
-                    self.fam[self.num] = Fam(tree=self.tree, num=self.num)
+                    self.fam[self.num] = gt.Fam(tree=self.tree, num=self.num)
                 self.__get_fam()
-            elif self.tag == 'NOTE':
-                self.num = int(self.pointer[2:len(self.pointer) - 1])
+            elif self.tag == "NOTE":
+                self.num = int(self.pointer[2 : len(self.pointer) - 1])
                 if self.num not in self.note:
-                    self.note[self.num] = Note(tree=self.tree, num=self.num)
+                    self.note[self.num] = gt.Note(tree=self.tree, num=self.num)
                 self.__get_note()
-            elif self.tag == 'SOUR':
-                self.num = int(self.pointer[2:len(self.pointer) - 1])
+            elif self.tag == "SOUR":
+                self.num = int(self.pointer[2 : len(self.pointer) - 1])
                 if self.num not in self.sour:
-                    self.sour[self.num] = Source(num=self.num)
+                    self.sour[self.num] = gt.Source(num=self.num)
                 self.__get_source()
             else:
                 continue
 
     def __get_line(self):
-        # if the flag is set, skip reading a newline
+        """ Parse a new line
+            If the flag is set, skip reading a newline
+        """
         if self.flag:
             self.flag = False
             return True
@@ -94,75 +98,78 @@ class Gedcom:
         if not words:
             return False
         self.level = int(words[0])
-        if words[1][0] == '@':
+        if words[1][0] == "@":
             self.pointer = words[1]
             self.tag = words[2]
-            self.data = ' '.join(words[3:])
+            self.data = " ".join(words[3:])
         else:
             self.pointer = None
             self.tag = words[1]
-            self.data = ' '.join(words[2:])
+            self.data = " ".join(words[2:])
         return True
 
     def __get_indi(self):
+        """ Parse an individual """
         while self.f and self.__get_line() and self.level > 0:
-            if self.tag == 'NAME':
+            if self.tag == "NAME":
                 self.__get_name()
-            elif self.tag == 'SEX':
+            elif self.tag == "SEX":
                 self.indi[self.num].gender = self.data
-            elif self.tag in FACT_TYPES or self.tag == 'EVEN':
+            elif self.tag in FACT_TYPES or self.tag == "EVEN":
                 self.indi[self.num].facts.add(self.__get_fact())
-            elif self.tag == 'BAPL':
+            elif self.tag == "BAPL":
                 self.indi[self.num].baptism = self.__get_ordinance()
-            elif self.tag == 'CONL':
+            elif self.tag == "CONL":
                 self.indi[self.num].confirmation = self.__get_ordinance()
-            elif self.tag == 'ENDL':
+            elif self.tag == "ENDL":
                 self.indi[self.num].endowment = self.__get_ordinance()
-            elif self.tag == 'SLGC':
+            elif self.tag == "SLGC":
                 self.indi[self.num].sealing_child = self.__get_ordinance()
-            elif self.tag == 'FAMS':
-                self.indi[self.num].fams_num.add(int(self.data[2:len(self.data) - 1]))
-            elif self.tag == 'FAMC':
-                self.indi[self.num].famc_num.add(int(self.data[2:len(self.data) - 1]))
-            elif self.tag == '_FSFTID':
+            elif self.tag == "FAMS":
+                self.indi[self.num].fams_num.add(int(self.data[2 : len(self.data) - 1]))
+            elif self.tag == "FAMC":
+                self.indi[self.num].famc_num.add(int(self.data[2 : len(self.data) - 1]))
+            elif self.tag == "_FSFTID":
                 self.indi[self.num].fid = self.data
-            elif self.tag == 'NOTE':
-                num = int(self.data[2:len(self.data) - 1])
+            elif self.tag == "NOTE":
+                num = int(self.data[2 : len(self.data) - 1])
                 if num not in self.note:
-                    self.note[num] = Note(tree=self.tree, num=num)
+                    self.note[num] = gt.Note(tree=self.tree, num=num)
                 self.indi[self.num].notes.add(self.note[num])
-            elif self.tag == 'SOUR':
+            elif self.tag == "SOUR":
                 self.indi[self.num].sources.add(self.__get_link_source())
-            elif self.tag == 'OBJE':
+            elif self.tag == "OBJE":
                 self.indi[self.num].memories.add(self.__get_memorie())
         self.flag = True
 
     def __get_fam(self):
+        """ Parse a family """
         while self.__get_line() and self.level > 0:
-            if self.tag == 'HUSB':
-                self.fam[self.num].husb_num = int(self.data[2:len(self.data) - 1])
-            elif self.tag == 'WIFE':
-                self.fam[self.num].wife_num = int(self.data[2:len(self.data) - 1])
-            elif self.tag == 'CHIL':
-                self.fam[self.num].chil_num.add(int(self.data[2:len(self.data) - 1]))
+            if self.tag == "HUSB":
+                self.fam[self.num].husb_num = int(self.data[2 : len(self.data) - 1])
+            elif self.tag == "WIFE":
+                self.fam[self.num].wife_num = int(self.data[2 : len(self.data) - 1])
+            elif self.tag == "CHIL":
+                self.fam[self.num].chil_num.add(int(self.data[2 : len(self.data) - 1]))
             elif self.tag in FACT_TYPES:
                 self.fam[self.num].facts.add(self.__get_fact())
-            elif self.tag == 'SLGS':
+            elif self.tag == "SLGS":
                 self.fam[self.num].sealing_spouse = self.__get_ordinance()
-            elif self.tag == '_FSFTID':
+            elif self.tag == "_FSFTID":
                 self.fam[self.num].fid = self.data
-            elif self.tag == 'NOTE':
-                num = int(self.data[2:len(self.data) - 1])
+            elif self.tag == "NOTE":
+                num = int(self.data[2 : len(self.data) - 1])
                 if num not in self.note:
-                    self.note[num] = Note(tree=self.tree, num=num)
+                    self.note[num] = gt.Note(tree=self.tree, num=num)
                 self.fam[self.num].notes.add(self.note[num])
-            elif self.tag == 'SOUR':
+            elif self.tag == "SOUR":
                 self.fam[self.num].sources.add(self.__get_link_source())
         self.flag = True
 
     def __get_name(self):
-        parts = self.__get_text().split('/')
-        name = Name()
+        """ Parse a name """
+        parts = self.__get_text().split("/")
+        name = gt.Name()
         added = False
         name.given = parts[0].strip()
         name.surname = parts[1].strip()
@@ -172,74 +179,77 @@ class Gedcom:
             self.indi[self.num].name = name
             added = True
         while self.__get_line() and self.level > 1:
-            if self.tag == 'NPFX':
+            if self.tag == "NPFX":
                 name.prefix = self.data
-            elif self.tag == 'TYPE':
-                if self.data == 'aka':
+            elif self.tag == "TYPE":
+                if self.data == "aka":
                     self.indi[self.num].aka.add(name)
                     added = True
-                elif self.data == 'married':
+                elif self.data == "married":
                     self.indi[self.num].married.add(name)
                     added = True
-            elif self.tag == 'NICK':
-                nick = Name()
+            elif self.tag == "NICK":
+                nick = gt.Name()
                 nick.given = self.data
                 self.indi[self.num].nicknames.add(nick)
-            elif self.tag == 'NOTE':
-                num = int(self.data[2:len(self.data) - 1])
+            elif self.tag == "NOTE":
+                num = int(self.data[2 : len(self.data) - 1])
                 if num not in self.note:
-                    self.note[num] = Note(tree=self.tree, num=num)
+                    self.note[num] = gt.Note(tree=self.tree, num=num)
                 name.note = self.note[num]
         if not added:
             self.indi[self.num].birthnames.add(name)
         self.flag = True
 
     def __get_fact(self):
-        fact = Fact()
-        if self.tag != 'EVEN':
+        """ Parse a fact """
+        fact = gt.Fact()
+        if self.tag != "EVEN":
             fact.type = FACT_TYPES[self.tag]
             fact.value = self.data
         while self.__get_line() and self.level > 1:
-            if self.tag == 'TYPE':
+            if self.tag == "TYPE":
                 fact.type = self.data
-            if self.tag == 'DATE':
+            if self.tag == "DATE":
                 fact.date = self.__get_text()
-            elif self.tag == 'PLAC':
+            elif self.tag == "PLAC":
                 fact.place = self.__get_text()
-            elif self.tag == 'MAP':
+            elif self.tag == "MAP":
                 fact.map = self.__get_map()
-            elif self.tag == 'NOTE':
-                if self.data[:12] == 'Description:':
+            elif self.tag == "NOTE":
+                if self.data[:12] == "Description:":
                     fact.value = self.data[13:]
                     continue
-                num = int(self.data[2:len(self.data) - 1])
+                num = int(self.data[2 : len(self.data) - 1])
                 if num not in self.note:
-                    self.note[num] = Note(tree=self.tree, num=num)
+                    self.note[num] = gt.Note(tree=self.tree, num=num)
                 fact.note = self.note[num]
-            elif self.tag == 'CONT':
-                fact.value += '\n' + self.data
-            elif self.tag == 'CONC':
+            elif self.tag == "CONT":
+                fact.value += "\n" + self.data
+            elif self.tag == "CONC":
                 fact.value += self.data
         self.flag = True
         return fact
 
     def __get_map(self):
+        """ Parse map coordinates """
         latitude = None
         longitude = None
         while self.__get_line() and self.level > 3:
-            if self.tag == 'LATI':
+            if self.tag == "LATI":
                 latitude = self.data
-            elif self.tag == 'LONG':
+            elif self.tag == "LONG":
                 longitude = self.data
         self.flag = True
         return (latitude, longitude)
 
     def __get_text(self):
+        """ Parse a multiline text """
         text = self.data
         while self.__get_line():
-            if self.tag == 'CONT':
-                text += '\n' + self.data
-            elif self.tag == 'CONC':
+            if self.tag == "CONT":
+                text += "\n" + self.data
+            elif self.tag == "CONC":
                 text += self.data
             else:
                 break
@@ -247,69 +257,75 @@ class Gedcom:
         return text
 
     def __get_source(self):
+        """ Parse a source """
         while self.__get_line() and self.level > 0:
-            if self.tag == 'TITL':
+            if self.tag == "TITL":
                 self.sour[self.num].title = self.__get_text()
-            elif self.tag == 'AUTH':
+            elif self.tag == "AUTH":
                 self.sour[self.num].citation = self.__get_text()
-            elif self.tag == 'PUBL':
+            elif self.tag == "PUBL":
                 self.sour[self.num].url = self.__get_text()
-            elif self.tag == 'REFN':
+            elif self.tag == "REFN":
                 self.sour[self.num].fid = self.data
                 if self.data in self.tree.sources:
                     self.sour[self.num] = self.tree.sources[self.data]
                 else:
                     self.tree.sources[self.data] = self.sour[self.num]
-            elif self.tag == 'NOTE':
-                num = int(self.data[2:len(self.data) - 1])
+            elif self.tag == "NOTE":
+                num = int(self.data[2 : len(self.data) - 1])
                 if num not in self.note:
-                    self.note[num] = Note(tree=self.tree, num=num)
+                    self.note[num] = gt.Note(tree=self.tree, num=num)
                 self.sour[self.num].notes.add(self.note[num])
         self.flag = True
 
     def __get_link_source(self):
-        num = int(self.data[2:len(self.data) - 1])
+        """ Parse a link to a source """
+        num = int(self.data[2 : len(self.data) - 1])
         if num not in self.sour:
-            self.sour[num] = Source(num=num)
+            self.sour[num] = gt.Source(num=num)
         page = None
         while self.__get_line() and self.level > 1:
-            if self.tag == 'PAGE':
+            if self.tag == "PAGE":
                 page = self.__get_text()
         self.flag = True
         return (self.sour[num], page)
 
     def __get_memorie(self):
-        memorie = Memorie()
+        """ Parse a memorie """
+        memorie = gt.Memorie()
         while self.__get_line() and self.level > 1:
-            if self.tag == 'TITL':
+            if self.tag == "TITL":
                 memorie.description = self.__get_text()
-            elif self.tag == 'FILE':
+            elif self.tag == "FILE":
                 memorie.url = self.__get_text()
         self.flag = True
         return memorie
 
     def __get_note(self):
+        """ Parse a note """
         self.note[self.num].text = self.__get_text()
         self.flag = True
 
     def __get_ordinance(self):
-        ordinance = Ordinance()
+        """ Parse an ordinance """
+        ordinance = gt.Ordinance()
         while self.__get_line() and self.level > 1:
-            if self.tag == 'DATE':
+            if self.tag == "DATE":
                 ordinance.date = self.__get_text()
-            elif self.tag == 'TEMP':
+            elif self.tag == "TEMP":
                 ordinance.temple_code = self.data
-            elif self.tag == 'STAT':
+            elif self.tag == "STAT":
                 ordinance.status = ORDINANCES[self.data]
-            elif self.tag == 'FAMC':
-                num = int(self.data[2:len(self.data) - 1])
+            elif self.tag == "FAMC":
+                num = int(self.data[2 : len(self.data) - 1])
                 if num not in self.fam:
-                    self.fam[num] = Fam(tree=self.tree, num=num)
+                    self.fam[num] = gt.Fam(tree=self.tree, num=num)
                 ordinance.famc = self.fam[num]
         self.flag = True
         return ordinance
 
     def __add_id(self):
+        """ Reset GEDCOM identifiers """
         for num in self.fam:
             if self.fam[num].husb_num:
                 self.fam[num].husb_fid = self.indi[self.fam[num].husb_num].fid
@@ -324,14 +340,32 @@ class Gedcom:
                 self.indi[num].fams_fid.add((self.fam[fams].husb_fid, self.fam[fams].wife_fid))
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Merge GEDCOM data from FamilySearch Tree (4 Jul 2016)', add_help=False, usage='mergemyancestors.py -i input1.ged input2.ged ... [options]')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Merge GEDCOM data from FamilySearch Tree (4 Jul 2016)",
+        add_help=False,
+        usage="mergemyancestors.py -i input1.ged input2.ged ... [options]",
+    )
     try:
-        parser.add_argument('-i', metavar='<FILE>', nargs='+', type=argparse.FileType('r', encoding='UTF-8'), default=sys.stdin, help='input GEDCOM files [stdin]')
-        parser.add_argument('-o', metavar='<FILE>', nargs='?', type=argparse.FileType('w', encoding='UTF-8'), default=sys.stdout, help='output GEDCOM files [stdout]')
+        parser.add_argument(
+            "-i",
+            metavar="<FILE>",
+            nargs="+",
+            type=argparse.FileType("r", encoding="UTF-8"),
+            default=sys.stdin,
+            help="input GEDCOM files [stdin]",
+        )
+        parser.add_argument(
+            "-o",
+            metavar="<FILE>",
+            nargs="?",
+            type=argparse.FileType("w", encoding="UTF-8"),
+            default=sys.stdout,
+            help="output GEDCOM files [stdout]",
+        )
     except TypeError:
-        sys.stderr.write('Python >= 3.4 is required to run this script\n')
-        sys.stderr.write('(see https://docs.python.org/3/whatsnew/3.4.html#argparse)\n')
+        sys.stderr.write("Python >= 3.4 is required to run this script\n")
+        sys.stderr.write("(see https://docs.python.org/3/whatsnew/3.4.html#argparse)\n")
         exit(2)
 
     # extract arguments from the command line
@@ -342,7 +376,7 @@ if __name__ == '__main__':
         parser.print_help()
         exit(2)
 
-    tree = Tree()
+    tree = gt.Tree()
 
     indi_counter = 0
     fam_counter = 0
@@ -356,7 +390,7 @@ if __name__ == '__main__':
             fid = ged.indi[num].fid
             if fid not in tree.indi:
                 indi_counter += 1
-                tree.indi[fid] = Indi(tree=tree, num=indi_counter)
+                tree.indi[fid] = gt.Indi(tree=tree, num=indi_counter)
                 tree.indi[fid].tree = tree
                 tree.indi[fid].fid = ged.indi[num].fid
             tree.indi[fid].fams_fid |= ged.indi[num].fams_fid
@@ -382,7 +416,7 @@ if __name__ == '__main__':
             husb, wife = (ged.fam[num].husb_fid, ged.fam[num].wife_fid)
             if (husb, wife) not in tree.fam:
                 fam_counter += 1
-                tree.fam[(husb, wife)] = Fam(husb, wife, tree, fam_counter)
+                tree.fam[(husb, wife)] = gt.Fam(husb, wife, tree, fam_counter)
                 tree.fam[(husb, wife)].tree = tree
             tree.fam[(husb, wife)].chil_fid |= ged.fam[num].chil_fid
             if ged.fam[num].fid:
