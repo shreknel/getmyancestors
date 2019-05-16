@@ -193,6 +193,7 @@ class Session:
                 time.sleep(self.timeout)
                 continue
             self.write_log("FamilySearch session id: " + self.fssessionid)
+            self.set_current()
             return True
 
     def get_url(self, url):
@@ -258,18 +259,10 @@ class Session:
             self.lang = data["users"][0]["preferredLanguage"]
             self.display_name = data["users"][0]["displayName"]
 
-    def get_userid(self):
-        """ get FamilySearch current user ID """
-        if not self.fid:
-            self.set_current()
-        return self.fid
-
     def _(self, string):
         """ translate a string into user's language
             TODO replace translation file for gettext format
         """
-        if not self.lang:
-            self.set_current()
         if string in translations and self.lang in translations[string]:
             return translations[string][self.lang]
         return string
@@ -619,7 +612,7 @@ class Indi:
         notes = self.tree.fs.get_url("/platform/tree/persons/%s/notes.json" % self.fid)
         if notes:
             for n in notes["persons"][0]["notes"]:
-                text_note = "=== %s ===\n" % n["subject"] if 'subject' in n else ""
+                text_note = "=== %s ===\n" % n["subject"] if "subject" in n else ""
                 text_note += n["text"] + "\n" if "text" in n else ""
                 self.notes.add(Note(text_note, self.tree))
 
@@ -841,6 +834,10 @@ class Tree:
         self.notes = list()
         self.sources = dict()
         self.places = dict()
+        self.display_name = self.lang = None
+        if fs:
+            self.display_name = fs.display_name
+            self.lang = babelfish.Language.fromalpha2(fs.lang).name
 
     def add_indis(self, fids):
         """ add individuals to the family tree
@@ -1035,8 +1032,8 @@ class Tree:
         file.write("2 TIME %s\n" % time.strftime("%H:%M:%S"))
         file.write("1 SUBM @SUBM@\n")
         file.write("0 @SUBM@ SUBM\n")
-        file.write("1 NAME %s\n" % self.fs.display_name)
-        file.write("1 LANG %s\n" % babelfish.Language.fromalpha2(self.fs.lang).name)
+        file.write("1 NAME %s\n" % self.display_name)
+        file.write("1 LANG %s\n" % self.lang)
 
         for fid in sorted(self.indi, key=lambda x: self.indi.__getitem__(x).num):
             self.indi[fid].print(file)
@@ -1175,14 +1172,11 @@ if __name__ == "__main__":
     tree = Tree(fs)
 
     # check LDS account
-    if (
-        args.c
-        and fs.get_url("/platform/tree/persons/%s/ordinances.json" % fs.get_userid()) == "error"
-    ):
+    if args.c and fs.get_url("/platform/tree/persons/%s/ordinances.json" % fs.fid) == "error":
         exit(2)
 
     # add list of starting individuals to the family tree
-    todo = args.i if args.i else [fs.get_userid()]
+    todo = args.i if args.i else [fs.fid]
     print(_("Downloading starting individuals..."))
     tree.add_indis(todo)
 

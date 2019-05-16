@@ -78,13 +78,22 @@ class Gedcom:
                 if self.num not in self.note:
                     self.note[self.num] = gt.Note(tree=self.tree, num=self.num)
                 self.__get_note()
-            elif self.tag == "SOUR":
+            elif self.tag == "SOUR" and self.pointer:
                 self.num = int(self.pointer[2 : len(self.pointer) - 1])
                 if self.num not in self.sour:
                     self.sour[self.num] = gt.Source(num=self.num)
                 self.__get_source()
-            else:
-                continue
+            elif self.tag == "SUBM" and self.pointer:
+                self.__get_subm()
+
+    def __get_subm(self):
+        while self.__get_line() and self.level > 0:
+            if not self.tree.display_name or not self.tree.lang:
+                if self.tag == "NAME":
+                    self.tree.display_name = self.data
+                elif self.tag == "LANG":
+                    self.tree.lang = self.data
+        self.flag = True
 
     def __get_line(self):
         """ Parse a new line
@@ -372,7 +381,8 @@ if __name__ == "__main__":
     try:
         parser.error = parser.exit
         args = parser.parse_args()
-    except SystemExit:
+    except SystemExit as e:
+        print(e.code)
         parser.print_help()
         exit(2)
 
