@@ -689,7 +689,6 @@ class Indi:
             self.sealing_child.print(file)
         for num in self.fams_num:
             file.write("1 FAMS @F%s@\n" % num)
-            file.write("1 FAMS @F%s@\n" % num)
         for num in self.famc_num:
             file.write("1 FAMC @F%s@\n" % num)
         file.write("1 _FSFTID %s\n" % self.fid)
