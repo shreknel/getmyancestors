@@ -461,8 +461,7 @@ class Download(Frame):
         cache.delete("lang")
         cache.add("lang", self.fs.lang)
         lds_account = (
-            self.fs.get_url("/platform/tree/persons/%s/ordinances.json" % self.fs.get_userid())
-            != "error"
+            self.fs.get_url("/platform/tree/persons/%s/ordinances.json" % self.fs.fid) != "error"
         )
         self.options = Options(self.form, lds_account)
         self.info("")
@@ -472,7 +471,7 @@ class Download(Frame):
         self.btn_valid.config(
             command=self.command_in_thread(self.download), state="normal", text=_("Download")
         )
-        self.options.start_indis.add_indi(self.fs.get_userid())
+        self.options.start_indis.add_indi(self.fs.fid)
         self.update_needed = False
 
     def quit(self):
