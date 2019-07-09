@@ -121,7 +121,7 @@ class Session:
         :param timeout: time before retry a request
     """
 
-    def __init__(self, username, password, verbose=False, logfile=sys.stderr, timeout=60):
+    def __init__(self, username, password, verbose=False, logfile=False, timeout=60):
         self.username = username
         self.password = password
         self.verbose = verbose
@@ -133,8 +133,11 @@ class Session:
 
     def write_log(self, text):
         """ write text in the log file """
+        log = "[%s]: %s\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), text)
         if self.verbose:
-            self.logfile.write("[%s]: %s\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), text))
+            sys.stderr.write(log)
+        if self.logfile:
+            self.logfile.write(log)
 
     def login(self):
         """ retrieve FamilySearch session ID
@@ -957,7 +960,7 @@ class Tree:
         loop = asyncio.get_event_loop()
         if rels:
             self.add_indis(set.union(*({father, mother} for father, mother, relfid in rels)))
-            for father, mother, relfid in rels:
+            for father, mother, _ in rels:
                 if father in self.indi and mother in self.indi:
                     self.indi[father].add_fams((father, mother))
                     self.indi[mother].add_fams((father, mother))
@@ -1050,43 +1053,69 @@ class Tree:
         file.write("0 TRLR\n")
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description="Retrieve GEDCOM data from FamilySearch Tree (4 Jul 2016)",
         add_help=False,
         usage="getmyancestors.py -u username -p password [options]",
     )
-    parser.add_argument("-u", metavar="<STR>", type=str, help="FamilySearch username")
-    parser.add_argument("-p", metavar="<STR>", type=str, help="FamilySearch password")
+    parser.add_argument("-u", "--username", metavar="<STR>", type=str, help="FamilySearch username")
+    parser.add_argument("-p", "--password", metavar="<STR>", type=str, help="FamilySearch password")
     parser.add_argument(
         "-i",
+        "--individuals",
         metavar="<STR>",
         nargs="+",
         type=str,
         help="List of individual FamilySearch IDs for whom to retrieve ancestors",
     )
     parser.add_argument(
-        "-a", metavar="<INT>", type=int, default=4, help="Number of generations to ascend [4]"
+        "-a",
+        "--ascend",
+        metavar="<INT>",
+        type=int,
+        default=4,
+        help="Number of generations to ascend [4]",
     )
     parser.add_argument(
-        "-d", metavar="<INT>", type=int, default=0, help="Number of generations to descend [0]"
+        "-d",
+        "--descend",
+        metavar="<INT>",
+        type=int,
+        default=0,
+        help="Number of generations to descend [0]",
     )
     parser.add_argument(
-        "-m", action="store_true", default=False, help="Add spouses and couples information [False]"
+        "-m",
+        "--marriage",
+        action="store_true",
+        default=False,
+        help="Add spouses and couples information [False]",
     )
     parser.add_argument(
-        "-r", action="store_true", default=False, help="Add list of contributors in notes [False]"
+        "-r",
+        "--get-contributors",
+        action="store_true",
+        default=False,
+        help="Add list of contributors in notes [False]",
     )
     parser.add_argument(
         "-c",
+        "--get_ordinances",
         action="store_true",
         default=False,
         help="Add LDS ordinances (need LDS account) [False]",
     )
     parser.add_argument(
-        "-v", action="store_true", default=False, help="Increase output verbosity [False]"
+        "-v",
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Increase output verbosity [False]",
     )
-    parser.add_argument("-t", metavar="<INT>", type=int, default=60, help="Timeout in seconds [60]")
+    parser.add_argument(
+        "-t", "--timeout", metavar="<INT>", type=int, default=60, help="Timeout in seconds [60]"
+    )
     parser.add_argument(
         "--show-password",
         action="store_true",
@@ -1096,6 +1125,7 @@ if __name__ == "__main__":
     try:
         parser.add_argument(
             "-o",
+            "--outfile",
             metavar="<FILE>",
             type=argparse.FileType("w", encoding="UTF-8"),
             default=sys.stdout,
@@ -1103,15 +1133,16 @@ if __name__ == "__main__":
         )
         parser.add_argument(
             "-l",
+            "--logfile",
             metavar="<FILE>",
             type=argparse.FileType("w", encoding="UTF-8"),
-            default=sys.stderr,
+            default=False,
             help="output log file [stderr]",
         )
     except TypeError:
         sys.stderr.write("Python >= 3.4 is required to run this script\n")
         sys.stderr.write("(see https://docs.python.org/3/whatsnew/3.4.html#argparse)\n")
-        exit(2)
+        sys.exit(2)
 
     # extract arguments from the command line
     try:
@@ -1119,70 +1150,60 @@ if __name__ == "__main__":
         args = parser.parse_args()
     except SystemExit:
         parser.print_help()
-        exit(2)
-
-    if args.i:
-        for fid in args.i:
+        sys.exit(2)
+    if args.individuals:
+        for fid in args.individuals:
             if not re.match(r"[A-Z0-9]{4}-[A-Z0-9]{3}", fid):
-                exit("Invalid FamilySearch ID: " + fid)
+                sys.exit("Invalid FamilySearch ID: " + fid)
 
-    username = args.u if args.u else input("Enter FamilySearch username: ")
-    password = args.p if args.p else getpass.getpass("Enter FamilySearch password: ")
+    args.username = args.username if args.username else input("Enter FamilySearch username: ")
+    args.password = (
+        args.password if args.password else getpass.getpass("Enter FamilySearch password: ")
+    )
 
     time_count = time.time()
 
     # Report settings used when getmyancestors.py is executed.
+    if args.outfile.name != "<stdout>":
 
-    setting_list = [
-        string
-        for setting in [
-            [
-                str("-" + action.dest + " " + action.help),
-                username
-                if action.dest is "u"
-                else password
-                if action.dest is "p" and args.show_password
-                else "******"
-                if action.dest is "p"
-                else str(vars(args)[action.dest].name)
-                if hasattr(vars(args)[action.dest], "name")
-                else str(vars(args)[action.dest]),
-            ]
-            for action in vars(parser)["_actions"]
-        ]
-        for string in setting
-    ]
-    setting_list.insert(0, time.strftime("%X %x %Z"))
-    setting_list.insert(0, "time stamp: ")
+        def parse_action(act):
+            if not args.show_password and act.dest == "password":
+                return "******"
+            value = getattr(args, act.dest)
+            return str(getattr(value, "name", value))
 
-    formatting = "{:74}{:\t>1}\n" * int(len(setting_list) / 2)
-    settings_output = (formatting).format(*setting_list)
-
-    if args.o.name != "<stdout>":
-        with open(args.o.name.split(".")[0] + ".settings", "w") as settings_record:
-            settings_record.write(settings_output)
+        formatting = "{:74}{:\t>1}\n"
+        with open(args.outfile.name.split(".")[0] + ".settings", "w") as settings_file:
+            settings_file.write(formatting.format("time stamp: ", time.strftime("%X %x %Z")))
+            for action in parser._actions:
+                settings_file.write(
+                    formatting.format(action.option_strings[-1], parse_action(action))
+                )
 
     # initialize a FamilySearch session and a family tree object
     print("Login to FamilySearch...")
-    fs = Session(username, password, args.v, args.l, args.t)
+    fs = Session(args.username, args.password, args.verbose, args.logfile, args.timeout)
     if not fs.logged:
-        exit(2)
+        sys.exit(2)
     _ = fs._
     tree = Tree(fs)
 
     # check LDS account
-    if args.c and fs.get_url("/platform/tree/persons/%s/ordinances.json" % fs.fid) == "error":
-        exit(2)
+    if (
+        args.get_ordinances
+        and fs.get_url("/platform/tree/persons/%s/ordinances.json" % fs.fid) == "error"
+    ):
+        sys.exit(2)
 
     # add list of starting individuals to the family tree
-    todo = args.i if args.i else [fs.fid]
+    todo = args.individuals if args.individuals else [fs.fid]
     print(_("Downloading starting individuals..."))
     tree.add_indis(todo)
 
     # download ancestors
     todo = set(todo)
     done = set()
-    for i in range(args.a):
+    for i in range(args.ascend):
         if not todo:
             break
         done |= todo
@@ -1192,7 +1213,7 @@ if __name__ == "__main__":
     # download descendants
     todo = set(tree.indi.keys())
     done = set()
-    for i in range(args.d):
+    for i in range(args.descend):
         if not todo:
             break
         done |= todo
@@ -1200,7 +1221,7 @@ if __name__ == "__main__":
         todo = tree.add_children(todo) - done
 
     # download spouses
-    if args.m:
+    if args.marriage:
         print(_("Downloading spouses and marriage information..."))
         todo = set(tree.indi.keys())
         tree.add_spouses(todo)
@@ -1210,13 +1231,13 @@ if __name__ == "__main__":
         futures = set()
         for fid, indi in tree.indi.items():
             futures.add(loop.run_in_executor(None, indi.get_notes))
-            if args.c:
+            if args.get_ordinances:
                 futures.add(loop.run_in_executor(None, tree.add_ordinances, fid))
-            if args.r:
+            if args.get_contributors:
                 futures.add(loop.run_in_executor(None, indi.get_contributors))
         for fam in tree.fam.values():
             futures.add(loop.run_in_executor(None, fam.get_notes))
-            if args.r:
+            if args.get_contributors:
                 futures.add(loop.run_in_executor(None, fam.get_contributors))
         for future in futures:
             await future
@@ -1224,15 +1245,19 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     print(
         _("Downloading notes")
-        + ((("," if args.r else _(" and")) + _(" ordinances")) if args.c else "")
-        + (_(" and contributors") if args.r else "")
+        + (
+            (("," if args.get_contributors else _(" and")) + _(" ordinances"))
+            if args.get_ordinances
+            else ""
+        )
+        + (_(" and contributors") if args.get_contributors else "")
         + "..."
     )
     loop.run_until_complete(download_stuff(loop))
 
     # compute number for family relationships and print GEDCOM file
     tree.reset_num()
-    tree.print(args.o)
+    tree.print(args.outfile)
     print(
         _(
             "Downloaded %s individuals, %s families, %s sources and %s notes "
@@ -1247,3 +1272,7 @@ if __name__ == "__main__":
             str(fs.counter),
         )
     )
+
+
+if __name__ == "__main__":
+    main()
