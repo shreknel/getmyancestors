@@ -529,7 +529,7 @@ class Indi:
         self.parents = set()
         self.spouses = set()
         self.children = set()
-        self.baptism = self.confirmation = self.endowment = self.sealing_child = None
+        self.baptism = self.confirmation  = self.initiatory = self.endowment = self.sealing_child = None
         self.nicknames = set()
         self.facts = set()
         self.birthnames = set()
@@ -633,6 +633,8 @@ class Indi:
                     self.baptism = Ordinance(o)
                 elif o["type"] == "http://lds.org/Confirmation":
                     self.confirmation = Ordinance(o)
+                elif o["type"] == "http://lds.org/Initiatory":
+                    self.initiatory = Ordinance(o)
                 elif o["type"] == "http://lds.org/Endowment":
                     self.endowment = Ordinance(o)
                 elif o["type"] == "http://lds.org/SealingChildToParents":
@@ -684,6 +686,9 @@ class Indi:
         if self.confirmation:
             file.write("1 CONL\n")
             self.confirmation.print(file)
+        if self.initiatory:
+            file.write("1 WAC\n")
+            self.initiatory.print(file)
         if self.endowment:
             file.write("1 ENDL\n")
             self.endowment.print(file)
