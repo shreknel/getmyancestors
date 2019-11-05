@@ -26,6 +26,7 @@ from __future__ import print_function
 import re
 import sys
 import time
+from urllib.parse import unquote
 import getpass
 import asyncio
 import argparse
@@ -369,7 +370,7 @@ class Fact:
                 if self.type in FACT_EVEN:
                     self.type = tree.fs._(FACT_EVEN[self.type])
                 elif self.type[:6] == "data:,":
-                    self.type = self.type[6:]
+                    self.type = unquote(self.type[6:])
                 elif self.type not in FACT_TAGS:
                     self.type = None
             if "date" in data:
