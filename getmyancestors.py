@@ -529,7 +529,8 @@ class Indi:
         self.parents = set()
         self.spouses = set()
         self.children = set()
-        self.baptism = self.confirmation  = self.initiatory = self.endowment = self.sealing_child = None
+        self.baptism = self.confirmation = self.initiatory = None
+        self.endowment = self.sealing_child = None
         self.nicknames = set()
         self.facts = set()
         self.birthnames = set()
@@ -639,8 +640,8 @@ class Indi:
                     self.endowment = Ordinance(o)
                 elif o["type"] == "http://lds.org/SealingChildToParents":
                     self.sealing_child = Ordinance(o)
-                    if "father" in o and "mother" in o:
-                        famc = (o["father"]["resourceId"], o["mother"]["resourceId"])
+                    if "parent1" in o and "parent2" in o:
+                        famc = (o["parent1"]["resourceId"], o["parent2"]["resourceId"])
                 elif o["type"] == "http://lds.org/SealingToSpouse":
                     res.append(o)
         return res, famc
@@ -877,8 +878,8 @@ class Tree:
                 loop.run_until_complete(add_datas(loop, data))
                 if "childAndParentsRelationships" in data:
                     for rel in data["childAndParentsRelationships"]:
-                        father = rel["father"]["resourceId"] if "father" in rel else None
-                        mother = rel["mother"]["resourceId"] if "mother" in rel else None
+                        father = rel["parent1"]["resourceId"] if "parent1" in rel else None
+                        mother = rel["parent2"]["resourceId"] if "parent2" in rel else None
                         child = rel["child"]["resourceId"] if "child" in rel else None
                         if child in self.indi:
                             self.indi[child].parents.add((father, mother))
