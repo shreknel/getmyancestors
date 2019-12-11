@@ -81,11 +81,12 @@ FACT_EVEN = {
 }
 
 ORDINANCES_STATUS = {
-    "http://familysearch.org/v1/Ready": "QUALIFIED",
-    "http://familysearch.org/v1/Completed": "COMPLETED",
-    "http://familysearch.org/v1/Cancelled": "CANCELED",
-    "http://familysearch.org/v1/InProgress": "SUBMITTED",
-    "http://familysearch.org/v1/NotNeeded": "INFANT",
+    "Ready": "QUALIFIED",
+    "Completed": "COMPLETED",
+    "Cancelled": "CANCELED",
+    "InProgressPrinted": "SUBMITTED",
+    "InProgressNotPrinted": "SUBMITTED",
+    "NotNeeded": "INFANT",
 }
 
 
@@ -486,10 +487,10 @@ class Ordinance:
     def __init__(self, data=None):
         self.date = self.temple_code = self.status = self.famc = None
         if data:
-            if "date" in data:
-                self.date = data["date"]["formal"]
-            if "templeCode" in data:
-                self.temple_code = data["templeCode"]
+            if "completedDate" in data:
+                self.date = data["completedDate"]
+            if "completedTemple" in data:
+                self.temple_code = data["completedTemple"]["code"]
             self.status = data["status"]
 
     def print(self, file=sys.stdout):
@@ -527,6 +528,7 @@ class Indi:
         self.fams_num = set()
         self.name = None
         self.gender = None
+        self.living = None
         self.parents = set()
         self.spouses = set()
         self.children = set()
@@ -544,19 +546,19 @@ class Indi:
     def add_data(self, data):
         """ add FS individual data """
         if data:
-            if data["names"]:
-                for x in data["names"]:
-                    if x["preferred"]:
-                        self.name = Name(x, self.tree)
-                    else:
-                        if x["type"] == "http://gedcomx.org/Nickname":
-                            self.nicknames.add(Name(x, self.tree))
-                        if x["type"] == "http://gedcomx.org/BirthName":
-                            self.birthnames.add(Name(x, self.tree))
-                        if x["type"] == "http://gedcomx.org/AlsoKnownAs":
-                            self.aka.add(Name(x, self.tree))
-                        if x["type"] == "http://gedcomx.org/MarriedName":
-                            self.married.add(Name(x, self.tree))
+            self.living = data["living"]
+            for x in data["names"]:
+                if x["preferred"]:
+                    self.name = Name(x, self.tree)
+                else:
+                    if x["type"] == "http://gedcomx.org/Nickname":
+                        self.nicknames.add(Name(x, self.tree))
+                    if x["type"] == "http://gedcomx.org/BirthName":
+                        self.birthnames.add(Name(x, self.tree))
+                    if x["type"] == "http://gedcomx.org/AlsoKnownAs":
+                        self.aka.add(Name(x, self.tree))
+                    if x["type"] == "http://gedcomx.org/MarriedName":
+                        self.married.add(Name(x, self.tree))
             if "gender" in data:
                 if data["gender"]["type"] == "http://gedcomx.org/Male":
                     self.gender = "M"
@@ -627,24 +629,30 @@ class Indi:
         """
         res = []
         famc = False
-        url = "/platform/tree/persons/%s/ordinances.json" % self.fid
-        data = self.tree.fs.get_url(url)["persons"][0]["ordinances"]
+        if self.living:
+            return res, famc
+        url = "/service/tree/tree-data/reservations/person/%s/ordinances" % self.fid
+        data = self.tree.fs.get_url(url)
         if data:
-            for o in data:
-                if o["type"] == "http://lds.org/Baptism":
+            for key, o in data["data"].items():
+                if key == "baptism":
                     self.baptism = Ordinance(o)
-                elif o["type"] == "http://lds.org/Confirmation":
+                elif key == "confirmation":
                     self.confirmation = Ordinance(o)
-                elif o["type"] == "http://lds.org/Initiatory":
+                elif key == "initiatory":
                     self.initiatory = Ordinance(o)
-                elif o["type"] == "http://lds.org/Endowment":
+                elif key == "endowment":
                     self.endowment = Ordinance(o)
-                elif o["type"] == "http://lds.org/SealingChildToParents":
-                    self.sealing_child = Ordinance(o)
-                    if "parent1" in o and "parent2" in o:
-                        famc = (o["parent1"]["resourceId"], o["parent2"]["resourceId"])
-                elif o["type"] == "http://lds.org/SealingToSpouse":
-                    res.append(o)
+                elif key == "sealingsToParents":
+                    for subo in o:
+                        self.sealing_child = Ordinance(subo)
+                        relationships = subo.get("relationships", {})
+                        father = relationships.get("parent1Id")
+                        mother = relationships.get("parent2Id")
+                        if father and mother:
+                            famc = father, mother
+                elif key == "sealingsToSpouses":
+                    res += o
         return res, famc
 
     def get_contributors(self):
@@ -1006,10 +1014,11 @@ class Tree:
             if famc and famc in self.fam:
                 self.indi[fid].sealing_child.famc = self.fam[famc]
             for o in ret:
-                if (fid, o["spouse"]["resourceId"]) in self.fam:
-                    self.fam[(fid, o["spouse"]["resourceId"])].sealing_spouse = Ordinance(o)
-                elif (o["spouse"]["resourceId"], fid) in self.fam:
-                    self.fam[(o["spouse"]["resourceId"], fid)].sealing_spouse = Ordinance(o)
+                spouse_id = o["relationships"]["spouseId"]
+                if (fid, spouse_id) in self.fam:
+                    self.fam[fid, spouse_id].sealing_spouse = Ordinance(o)
+                elif (spouse_id, fid) in self.fam:
+                    self.fam[spouse_id, fid].sealing_spouse = Ordinance(o)
 
     def reset_num(self):
         """ reset all GEDCOM identifiers """
@@ -1196,11 +1205,10 @@ def main():
     tree = Tree(fs)
 
     # check LDS account
-    if (
-        args.get_ordinances
-        and fs.get_url("/platform/tree/persons/%s/ordinances.json" % fs.fid) == "error"
-    ):
-        sys.exit(2)
+    if args.get_ordinances:
+        test = fs.get_url("/service/tree/tree-data/reservations/person/%s/ordinances" % fs.fid)
+        if test["status"] != "OK":
+            sys.exit(2)
 
     # add list of starting individuals to the family tree
     todo = args.individuals if args.individuals else [fs.fid]
