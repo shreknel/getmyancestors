@@ -1189,12 +1189,17 @@ def main():
             return str(getattr(value, "name", value))
 
         formatting = "{:74}{:\t>1}\n"
-        with open(args.outfile.name.split(".")[0] + ".settings", "w") as settings_file:
-            settings_file.write(formatting.format("time stamp: ", time.strftime("%X %x %Z")))
-            for action in parser._actions:
-                settings_file.write(
-                    formatting.format(action.option_strings[-1], parse_action(action))
-                )
+        settings_name = args.outfile.name.split(".")[0] + ".settings"
+        try:
+            with open(settings_name, "w") as settings_file:
+                settings_file.write(formatting.format("time stamp: ", time.strftime("%X %x %Z")))
+                for action in parser._actions:
+                    settings_file.write(
+                        formatting.format(action.option_strings[-1], parse_action(action))
+                    )
+        except OSError as exc:
+            print("Unable to write %s: %s" % (settings_name, repr(exc)),
+                  file=sys.stderr)
 
     # initialize a FamilySearch session and a family tree object
     print("Login to FamilySearch...")
