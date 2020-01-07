@@ -1198,8 +1198,7 @@ def main():
                         formatting.format(action.option_strings[-1], parse_action(action))
                     )
         except OSError as exc:
-            print("Unable to write %s: %s" % (settings_name, repr(exc)),
-                  file=sys.stderr)
+            print("Unable to write %s: %s" % (settings_name, repr(exc)), file=sys.stderr)
 
     # initialize a FamilySearch session and a family tree object
     print("Login to FamilySearch...")
