@@ -1214,83 +1214,85 @@ def main():
         if test["status"] != "OK":
             sys.exit(2)
 
-    # add list of starting individuals to the family tree
-    todo = args.individuals if args.individuals else [fs.fid]
-    print(_("Downloading starting individuals..."))
-    tree.add_indis(todo)
+    try:
+        # add list of starting individuals to the family tree
+        todo = args.individuals if args.individuals else [fs.fid]
+        print(_("Downloading starting individuals..."))
+        tree.add_indis(todo)
 
-    # download ancestors
-    todo = set(todo)
-    done = set()
-    for i in range(args.ascend):
-        if not todo:
-            break
-        done |= todo
-        print(_("Downloading %s. of generations of ancestors...") % (i + 1))
-        todo = tree.add_parents(todo) - done
+        # download ancestors
+        todo = set(todo)
+        done = set()
+        for i in range(args.ascend):
+            if not todo:
+                break
+            done |= todo
+            print(_("Downloading %s. of generations of ancestors...") % (i + 1))
+            todo = tree.add_parents(todo) - done
 
-    # download descendants
-    todo = set(tree.indi.keys())
-    done = set()
-    for i in range(args.descend):
-        if not todo:
-            break
-        done |= todo
-        print(_("Downloading %s. of generations of descendants...") % (i + 1))
-        todo = tree.add_children(todo) - done
-
-    # download spouses
-    if args.marriage:
-        print(_("Downloading spouses and marriage information..."))
+        # download descendants
         todo = set(tree.indi.keys())
-        tree.add_spouses(todo)
+        done = set()
+        for i in range(args.descend):
+            if not todo:
+                break
+            done |= todo
+            print(_("Downloading %s. of generations of descendants...") % (i + 1))
+            todo = tree.add_children(todo) - done
 
-    # download ordinances, notes and contributors
-    async def download_stuff(loop):
-        futures = set()
-        for fid, indi in tree.indi.items():
-            futures.add(loop.run_in_executor(None, indi.get_notes))
-            if args.get_ordinances:
-                futures.add(loop.run_in_executor(None, tree.add_ordinances, fid))
-            if args.get_contributors:
-                futures.add(loop.run_in_executor(None, indi.get_contributors))
-        for fam in tree.fam.values():
-            futures.add(loop.run_in_executor(None, fam.get_notes))
-            if args.get_contributors:
-                futures.add(loop.run_in_executor(None, fam.get_contributors))
-        for future in futures:
-            await future
+        # download spouses
+        if args.marriage:
+            print(_("Downloading spouses and marriage information..."))
+            todo = set(tree.indi.keys())
+            tree.add_spouses(todo)
 
-    loop = asyncio.get_event_loop()
-    print(
-        _("Downloading notes")
-        + (
-            (("," if args.get_contributors else _(" and")) + _(" ordinances"))
-            if args.get_ordinances
-            else ""
-        )
-        + (_(" and contributors") if args.get_contributors else "")
-        + "..."
-    )
-    loop.run_until_complete(download_stuff(loop))
+        # download ordinances, notes and contributors
+        async def download_stuff(loop):
+            futures = set()
+            for fid, indi in tree.indi.items():
+                futures.add(loop.run_in_executor(None, indi.get_notes))
+                if args.get_ordinances:
+                    futures.add(loop.run_in_executor(None, tree.add_ordinances, fid))
+                if args.get_contributors:
+                    futures.add(loop.run_in_executor(None, indi.get_contributors))
+            for fam in tree.fam.values():
+                futures.add(loop.run_in_executor(None, fam.get_notes))
+                if args.get_contributors:
+                    futures.add(loop.run_in_executor(None, fam.get_contributors))
+            for future in futures:
+                await future
 
-    # compute number for family relationships and print GEDCOM file
-    tree.reset_num()
-    tree.print(args.outfile)
-    print(
-        _(
-            "Downloaded %s individuals, %s families, %s sources and %s notes "
-            "in %s seconds with %s HTTP requests."
+        loop = asyncio.get_event_loop()
+        print(
+            _("Downloading notes")
+            + (
+                (("," if args.get_contributors else _(" and")) + _(" ordinances"))
+                if args.get_ordinances
+                else ""
+            )
+            + (_(" and contributors") if args.get_contributors else "")
+            + "..."
         )
-        % (
-            str(len(tree.indi)),
-            str(len(tree.fam)),
-            str(len(tree.sources)),
-            str(len(tree.notes)),
-            str(round(time.time() - time_count)),
-            str(fs.counter),
+        loop.run_until_complete(download_stuff(loop))
+
+    finally:
+        # compute number for family relationships and print GEDCOM file
+        tree.reset_num()
+        tree.print(args.outfile)
+        print(
+            _(
+                "Downloaded %s individuals, %s families, %s sources and %s notes "
+                "in %s seconds with %s HTTP requests."
+            )
+            % (
+                str(len(tree.indi)),
+                str(len(tree.fam)),
+                str(len(tree.sources)),
+                str(len(tree.notes)),
+                str(round(time.time() - time_count)),
+                str(fs.counter),
+            )
         )
-    )
 
 
 if __name__ == "__main__":
