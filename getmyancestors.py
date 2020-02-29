@@ -31,19 +31,11 @@ import getpass
 import asyncio
 import argparse
 import requests
+import babelfish
 
 # local import
 from translation import translations
 
-try:
-    import babelfish
-except ImportError:
-    sys.stderr.write("You need to install the babelfish module first\n")
-    sys.stderr.write(
-        '(run this in your terminal: "python3 -m pip install babelfish" '
-        'or "python3 -m pip install --user babelfish")\n'
-    )
-    sys.exit(2)
 
 # is subject to change: see https://www.familysearch.org/developers/docs/api/tree/Persons_resource
 MAX_PERSONS = 200

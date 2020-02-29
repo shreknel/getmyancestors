@@ -7,23 +7,13 @@ This program is now in production phase, but bugs might still be present. Featur
 
 The project is maintained at https://github.com/Linekio/getmyancestors. Visit here for the latest version and more information.
 
-This script requires python3, the requests module, and the babelfish module to work. To install the modules, run in your terminal:
+This script requires python3 and the modules indicated in the requirements.txt file. To install the modules, run in your terminal:
 
-For requests:
-
-"python3 -m pip install requests" (or "python3 -m pip install --user requests" if you don't have admin rights on your machine).
-
-For babelfish:
-
-"python3 -m pip install babelfish" (or "python3 -m pip install --user babelfish" if you don't have admin rights on your machine).
+"python3 -m pip install -r requirements" (or "python3 -m pip install --user requirements" if you don't have admin rights on your machine).
 
 This script requires python 3.4 (or higher) to run due to some novel features in the argparse and asyncio modules (https://docs.python.org/3/whatsnew/3.4.html)
 
-The graphical interface requires tkinter (https://docs.python.org/3/library/tkinter.html) and diskcache.
-
 To download the script, click on the green button "Clone or download" on the top of this page and then click on "Download ZIP".
-
-Current version was updated on November 11th 2018.
 
 
 How to use

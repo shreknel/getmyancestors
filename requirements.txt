@@ -1,0 +1,7 @@
+babelfish==0.5.5
+certifi==2019.11.28
+chardet==3.0.4
+diskcache==4.1.0
+idna==2.9
+requests==2.23.0
+urllib3==1.25.8
