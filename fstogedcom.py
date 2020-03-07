@@ -240,6 +240,7 @@ class SignIn(Frame):
     def __init__(self, master, **kwargs):
         super(SignIn, self).__init__(master, **kwargs)
         self.username = StringVar()
+        self.username.set(cache.get("username") or "")
         self.password = StringVar()
         label_username = Label(self, text=_("Username:"))
         entry_username = EntryWithMenu(self, textvariable=self.username, width=30)
@@ -460,6 +461,8 @@ class Download(Frame):
         self.title.config(text=_("Options"))
         cache.delete("lang")
         cache.add("lang", self.fs.lang)
+        cache.delete("username")
+        cache.add("username", username)
         url = "/service/tree/tree-data/reservations/person/%s/ordinances" % self.fs.fid
         lds_account = self.fs.get_url(url, {}).get("status") == "OK"
         self.options = Options(self.form, lds_account)
