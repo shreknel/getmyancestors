@@ -284,7 +284,7 @@ class StartIndis(Treeview):
             messagebox.showinfo(_("Error"), message=_("Invalid FamilySearch ID: ") + fid)
             return None
         fs = self.master.master.master.fs
-        data = fs.get_url("/platform/tree/persons/%s.json" % fid)
+        data = fs.get_url("/platform/tree/persons/%s" % fid)
         if data and "persons" in data:
             if "names" in data["persons"][0]:
                 for name in data["persons"][0]["names"]:
@@ -460,9 +460,8 @@ class Download(Frame):
         self.title.config(text=_("Options"))
         cache.delete("lang")
         cache.add("lang", self.fs.lang)
-        lds_account = (
-            self.fs.get_url("/platform/tree/persons/%s/ordinances.json" % self.fs.fid) != "error"
-        )
+        url = "/service/tree/tree-data/reservations/person/%s/ordinances" % self.fs.fid
+        lds_account = self.fs.get_url(url, {}).get("status") == "OK"
         self.options = Options(self.form, lds_account)
         self.info("")
         self.sign_in.destroy()

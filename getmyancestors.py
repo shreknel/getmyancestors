@@ -193,9 +193,11 @@ class Session:
             self.set_current()
             return True
 
-    def get_url(self, url):
+    def get_url(self, url, headers=None):
         """ retrieve JSON structure from a FamilySearch URL """
         self.counter += 1
+        if headers is None:
+            headers = {"Accept": "application/x-gedcomx-v1+json"}
         while True:
             try:
                 self.write_log("Downloading: " + url)
@@ -203,6 +205,7 @@ class Session:
                     "https://familysearch.org" + url,
                     cookies={"fssessionid": self.fssessionid},
                     timeout=self.timeout,
+                    headers=headers,
                 )
             except requests.exceptions.ReadTimeout:
                 self.write_log("Read timed out")
@@ -249,7 +252,7 @@ class Session:
 
     def set_current(self):
         """ retrieve FamilySearch current user ID, name and language """
-        url = "/platform/users/current.json"
+        url = "/platform/users/current"
         data = self.get_url(url)
         if data:
             self.fid = data["users"][0]["personId"]
@@ -571,7 +574,7 @@ class Indi:
                     else:
                         self.facts.add(Fact(x, self.tree))
             if "sources" in data:
-                sources = self.tree.fs.get_url("/platform/tree/persons/%s/sources.json" % self.fid)
+                sources = self.tree.fs.get_url("/platform/tree/persons/%s/sources" % self.fid)
                 if sources:
                     quotes = dict()
                     for quote in sources["persons"][0]["sources"]:
@@ -585,7 +588,7 @@ class Indi:
                             self.tree.sources[source["id"]] = Source(source, self.tree)
                         self.sources.add((self.tree.sources[source["id"]], quotes[source["id"]]))
             if "evidence" in data:
-                url = "/platform/tree/persons/%s/memories.json" % self.fid
+                url = "/platform/tree/persons/%s/memories" % self.fid
                 memorie = self.tree.fs.get_url(url)
                 if memorie and "sourceDescriptions" in memorie:
                     for x in memorie["sourceDescriptions"]:
@@ -608,7 +611,7 @@ class Indi:
 
     def get_notes(self):
         """ retrieve individual notes """
-        notes = self.tree.fs.get_url("/platform/tree/persons/%s/notes.json" % self.fid)
+        notes = self.tree.fs.get_url("/platform/tree/persons/%s/notes" % self.fid)
         if notes:
             for n in notes["persons"][0]["notes"]:
                 text_note = "=== %s ===\n" % n["subject"] if "subject" in n else ""
@@ -624,7 +627,7 @@ class Indi:
         if self.living:
             return res, famc
         url = "/service/tree/tree-data/reservations/person/%s/ordinances" % self.fid
-        data = self.tree.fs.get_url(url)
+        data = self.tree.fs.get_url(url, {})
         if data:
             for key, o in data["data"].items():
                 if key == "baptism":
@@ -650,7 +653,7 @@ class Indi:
     def get_contributors(self):
         """ retrieve contributors """
         temp = set()
-        data = self.tree.fs.get_url("/platform/tree/persons/%s/changes.json" % self.fid)
+        data = self.tree.fs.get_url("/platform/tree/persons/%s/changes" % self.fid)
         if data:
             for entries in data["entries"]:
                 for contributors in entries["contributors"]:
@@ -748,7 +751,7 @@ class Fam:
         """
         if not self.fid:
             self.fid = fid
-            url = "/platform/tree/couple-relationships/%s.json" % self.fid
+            url = "/platform/tree/couple-relationships/%s" % self.fid
             data = self.tree.fs.get_url(url)
             if data:
                 if "facts" in data["relationships"][0]:
@@ -765,7 +768,7 @@ class Fam:
                     new_sources = quotes.keys() - self.tree.sources.keys()
                     if new_sources:
                         sources = self.tree.fs.get_url(
-                            "/platform/tree/couple-relationships/%s/sources.json" % self.fid
+                            "/platform/tree/couple-relationships/%s/sources" % self.fid
                         )
                         for source in sources["sourceDescriptions"]:
                             if (
@@ -779,9 +782,7 @@ class Fam:
     def get_notes(self):
         """ retrieve marriage notes """
         if self.fid:
-            notes = self.tree.fs.get_url(
-                "/platform/tree/couple-relationships/%s/notes.json" % self.fid
-            )
+            notes = self.tree.fs.get_url("/platform/tree/couple-relationships/%s/notes" % self.fid)
             if notes:
                 for n in notes["relationships"][0]["notes"]:
                     text_note = "=== %s ===\n" % n["subject"] if "subject" in n else ""
@@ -792,9 +793,7 @@ class Fam:
         """ retrieve contributors """
         if self.fid:
             temp = set()
-            data = self.tree.fs.get_url(
-                "/platform/tree/couple-relationships/%s/changes.json" % self.fid
-            )
+            data = self.tree.fs.get_url("/platform/tree/couple-relationships/%s/changes" % self.fid)
             if data:
                 for entries in data["entries"]:
                     for contributors in entries["contributors"]:
@@ -866,7 +865,7 @@ class Tree:
         asyncio.set_event_loop(loop)
         while new_fids:
             data = self.fs.get_url(
-                "/platform/tree/persons.json?pids=" + ",".join(new_fids[:MAX_PERSONS])
+                "/platform/tree/persons?pids=" + ",".join(new_fids[:MAX_PERSONS])
             )
             if data:
                 if "places" in data:
@@ -1202,7 +1201,7 @@ def main():
 
     # check LDS account
     if args.get_ordinances:
-        test = fs.get_url("/service/tree/tree-data/reservations/person/%s/ordinances" % fs.fid)
+        test = fs.get_url("/service/tree/tree-data/reservations/person/%s/ordinances" % fs.fid, {})
         if test["status"] != "OK":
             sys.exit(2)
 
