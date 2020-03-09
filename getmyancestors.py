@@ -653,7 +653,8 @@ class Indi:
     def get_contributors(self):
         """ retrieve contributors """
         temp = set()
-        data = self.tree.fs.get_url("/platform/tree/persons/%s/changes" % self.fid)
+        url = "/platform/tree/persons/%s/changes" % self.fid
+        data = self.tree.fs.get_url(url, {"Accept": "application/x-gedcomx-atom+json"})
         if data:
             for entries in data["entries"]:
                 for contributors in entries["contributors"]:
@@ -793,7 +794,8 @@ class Fam:
         """ retrieve contributors """
         if self.fid:
             temp = set()
-            data = self.tree.fs.get_url("/platform/tree/couple-relationships/%s/changes" % self.fid)
+            url = "/platform/tree/couple-relationships/%s/changes" % self.fid
+            data = self.tree.fs.get_url(url, {"Accept": "application/x-gedcomx-atom+json"})
             if data:
                 for entries in data["entries"]:
                     for contributors in entries["contributors"]:
