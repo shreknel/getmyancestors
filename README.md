@@ -9,7 +9,7 @@ The project is maintained at https://github.com/Linekio/getmyancestors. Visit he
 
 This script requires python3 and the modules indicated in the requirements.txt file. To install the modules, run in your terminal:
 
-"python3 -m pip install -r requirements" (or "python3 -m pip install --user requirements" if you don't have admin rights on your machine).
+"python3 -m pip install -r requirements.txt" (or "python3 -m pip install --user -r requirements.txt" if you don't have admin rights on your machine).
 
 This script requires python 3.4 (or higher) to run due to some novel features in the argparse and asyncio modules (https://docs.python.org/3/whatsnew/3.4.html)
 
