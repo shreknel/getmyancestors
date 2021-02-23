@@ -8,15 +8,24 @@ import sys
 import time
 import asyncio
 import tempfile
-from tkinter import Tk, StringVar, IntVar, filedialog, messagebox, Menu, TclError, PhotoImage
+from tkinter import (
+    Tk,
+    StringVar,
+    IntVar,
+    filedialog,
+    messagebox,
+    Menu,
+    TclError,
+    PhotoImage,
+)
 from tkinter.ttk import Frame, Label, Entry, Button, Checkbutton, Treeview, Notebook
 from threading import Thread
 from diskcache import Cache
 
 # local import
-from getmyancestors import Session, Tree, Indi, Fam
-from mergemyancestors import Gedcom
-from translation import translations
+from getmyancestors.getmyancestors import Session, Tree, Indi, Fam
+from getmyancestors.mergemyancestors import Gedcom
+from getmyancestors.translation import translations
 
 
 tmp_dir = os.path.join(tempfile.gettempdir(), "fstogedcom")
@@ -34,7 +43,7 @@ class EntryWithMenu(Entry):
     """ Entry widget with right-clic menu to copy/cut/paste """
 
     def __init__(self, master, **kw):
-        super(EntryWithMenu, self).__init__(master, **kw)
+        super().__init__(master, **kw)
         self.bind("<Button-3>", self.click_right)
 
     def click_right(self, event):
@@ -74,7 +83,7 @@ class FilesToMerge(Treeview):
     """ List of GEDCOM files to merge """
 
     def __init__(self, master, **kwargs):
-        super(FilesToMerge, self).__init__(master, selectmode="extended", height=5, **kwargs)
+        super().__init__(master, selectmode="extended", height=5, **kwargs)
         self.heading("#0", text=_("Files"))
         self.column("#0", width=300)
         self.files = dict()
@@ -84,7 +93,8 @@ class FilesToMerge(Treeview):
         """ add a GEDCOM file """
         if any(f.name == filename for f in self.files.values()):
             messagebox.showinfo(
-                _("Error"), message=_("File already exist: ") + os.path.basename(filename)
+                _("Error"),
+                message=_("File already exist: ") + os.path.basename(filename),
             )
             return
         if not os.path.exists(filename):
@@ -119,7 +129,7 @@ class Merge(Frame):
     """ Merge GEDCOM widget """
 
     def __init__(self, master, **kwargs):
-        super(Merge, self).__init__(master, **kwargs)
+        super().__init__(master, **kwargs)
         warning = Label(
             self,
             font=("a", 7),
@@ -194,7 +204,9 @@ class Merge(Frame):
                 tree.indi[fid].baptism = ged.indi[num].baptism
                 tree.indi[fid].confirmation = ged.indi[num].confirmation
                 tree.indi[fid].endowment = ged.indi[num].endowment
-                if not (tree.indi[fid].sealing_child and tree.indi[fid].sealing_child.famc):
+                if not (
+                    tree.indi[fid].sealing_child and tree.indi[fid].sealing_child.famc
+                ):
                     tree.indi[fid].sealing_child = ged.indi[num].sealing_child
 
             # add informations about families
@@ -230,7 +242,7 @@ class Merge(Frame):
 
     def quit(self):
         """ prevent exception on quit during download """
-        super(Merge, self).quit()
+        super().quit()
         os._exit(1)
 
 
@@ -238,14 +250,16 @@ class SignIn(Frame):
     """ Sign In widget """
 
     def __init__(self, master, **kwargs):
-        super(SignIn, self).__init__(master, **kwargs)
+        super().__init__(master, **kwargs)
         self.username = StringVar()
         self.username.set(cache.get("username") or "")
         self.password = StringVar()
         label_username = Label(self, text=_("Username:"))
         entry_username = EntryWithMenu(self, textvariable=self.username, width=30)
         label_password = Label(self, text=_("Password:"))
-        entry_password = EntryWithMenu(self, show="●", textvariable=self.password, width=30)
+        entry_password = EntryWithMenu(
+            self, show="●", textvariable=self.password, width=30
+        )
         label_username.grid(row=0, column=0, pady=15, padx=(0, 5))
         entry_username.grid(row=0, column=1)
         label_password.grid(row=1, column=0, padx=(0, 5))
@@ -264,7 +278,7 @@ class StartIndis(Treeview):
     """ List of starting individuals """
 
     def __init__(self, master, **kwargs):
-        super(StartIndis, self).__init__(
+        super().__init__(
             master, selectmode="extended", height=5, columns=("fid",), **kwargs
         )
         self.heading("#0", text=_("Name"))
@@ -282,7 +296,9 @@ class StartIndis(Treeview):
             messagebox.showinfo(_("Error"), message=_("ID already exist"))
             return None
         if not re.match(r"[A-Z0-9]{4}-[A-Z0-9]{3}", fid):
-            messagebox.showinfo(_("Error"), message=_("Invalid FamilySearch ID: ") + fid)
+            messagebox.showinfo(
+                _("Error"), message=_("Invalid FamilySearch ID: ") + fid
+            )
             return None
         fs = self.master.master.master.fs
         data = fs.get_url("/platform/tree/persons/%s" % fid)
@@ -291,7 +307,9 @@ class StartIndis(Treeview):
                 for name in data["persons"][0]["names"]:
                     if name["preferred"]:
                         self.indis[
-                            self.insert("", 0, text=name["nameForms"][0]["fullText"], values=fid)
+                            self.insert(
+                                "", 0, text=name["nameForms"][0]["fullText"], values=fid
+                            )
                         ] = fid
                         return True
         messagebox.showinfo(_("Error"), message=_("Individual not found"))
@@ -319,7 +337,7 @@ class Options(Frame):
     """ Options form """
 
     def __init__(self, master, ordinances=False, **kwargs):
-        super(Options, self).__init__(master, **kwargs)
+        super().__init__(master, **kwargs)
         self.ancestors = IntVar()
         self.ancestors.set(4)
         self.descendants = IntVar()
@@ -335,15 +353,21 @@ class Options(Frame):
         entry_ancestors = EntryWithMenu(self, textvariable=self.ancestors, width=5)
         label_descendants = Label(self, text=_("Number of generations to descend"))
         entry_descendants = EntryWithMenu(self, textvariable=self.descendants, width=5)
-        btn_add_indi = Button(btn, text=_("Add a FamilySearch ID"), command=self.add_indi)
+        btn_add_indi = Button(
+            btn, text=_("Add a FamilySearch ID"), command=self.add_indi
+        )
         btn_spouses = Checkbutton(
-            self, text="\t" + _("Add spouses and couples information"), variable=self.spouses
+            self,
+            text="\t" + _("Add spouses and couples information"),
+            variable=self.spouses,
         )
         btn_ordinances = Checkbutton(
             self, text="\t" + _("Add Temple information"), variable=self.ordinances
         )
         btn_contributors = Checkbutton(
-            self, text="\t" + _("Add list of contributors in notes"), variable=self.contributors
+            self,
+            text="\t" + _("Add list of contributors in notes"),
+            variable=self.contributors,
         )
         self.start_indis.grid(row=0, column=0, columnspan=3)
         entry_fid.grid(row=0, column=0, sticky="w")
@@ -374,7 +398,7 @@ class Download(Frame):
     """ Main widget """
 
     def __init__(self, master, **kwargs):
-        super(Download, self).__init__(master, borderwidth=20, **kwargs)
+        super().__init__(master, borderwidth=20, **kwargs)
         self.fs = None
         self.tree = None
         self.logfile = None
@@ -384,7 +408,11 @@ class Download(Frame):
         self.start_time = None
         info = Frame(self, borderwidth=10)
         self.info_label = Label(
-            info, wraplength=350, borderwidth=20, justify="center", font=("a", 10, "bold")
+            info,
+            wraplength=350,
+            borderwidth=20,
+            justify="center",
+            font=("a", 10, "bold"),
         )
         self.info_indis = Label(info)
         self.info_fams = Label(info)
@@ -401,9 +429,13 @@ class Download(Frame):
         self.form = Frame(self)
         self.sign_in = SignIn(self.form)
         self.options = None
-        self.title = Label(self, text=_("Sign In to FamilySearch"), font=("a", 12, "bold"))
+        self.title = Label(
+            self, text=_("Sign In to FamilySearch"), font=("a", 12, "bold")
+        )
         buttons = Frame(self)
-        self.btn_quit = Button(buttons, text=_("Quit"), command=Thread(target=self.quit).start)
+        self.btn_quit = Button(
+            buttons, text=_("Quit"), command=Thread(target=self.quit).start
+        )
         self.btn_valid = Button(
             buttons, text=_("Sign In"), command=self.command_in_thread(self.login)
         )
@@ -439,7 +471,9 @@ class Download(Frame):
         username = self.sign_in.username.get()
         password = self.sign_in.password.get()
         if not (username and password):
-            messagebox.showinfo(message=_("Please enter your FamilySearch username and password."))
+            messagebox.showinfo(
+                message=_("Please enter your FamilySearch username and password.")
+            )
             return
         self.btn_valid.config(state="disabled")
         self.info(_("Login to FamilySearch..."))
@@ -452,7 +486,9 @@ class Download(Frame):
             timeout=1,
         )
         if not self.fs.logged:
-            messagebox.showinfo(_("Error"), message=_("The username or password was incorrect"))
+            messagebox.showinfo(
+                _("Error"), message=_("The username or password was incorrect")
+            )
             self.btn_valid.config(state="normal")
             self.info("")
             return
@@ -471,7 +507,9 @@ class Download(Frame):
         self.options.pack()
         self.master.change_lang()
         self.btn_valid.config(
-            command=self.command_in_thread(self.download), state="normal", text=_("Download")
+            command=self.command_in_thread(self.download),
+            state="normal",
+            text=_("Download"),
         )
         self.options.start_indis.add_indi(self.fs.fid)
         self.update_needed = False
@@ -481,17 +519,20 @@ class Download(Frame):
         self.update_needed = False
         if self.logfile:
             self.logfile.close()
-        super(Download, self).quit()
+        super().quit()
         os._exit(1)
 
     def download(self):
         """ download family tree """
         todo = [
-            self.options.start_indis.indis[key] for key in sorted(self.options.start_indis.indis)
+            self.options.start_indis.indis[key]
+            for key in sorted(self.options.start_indis.indis)
         ]
         for fid in todo:
             if not re.match(r"[A-Z0-9]{4}-[A-Z0-9]{3}", fid):
-                messagebox.showinfo(_("Error"), message=_("Invalid FamilySearch ID: ") + fid)
+                messagebox.showinfo(
+                    _("Error"), message=_("Invalid FamilySearch ID: ") + fid
+                )
                 return
         self.start_time = time.time()
         self.options.destroy()
@@ -531,7 +572,9 @@ class Download(Frame):
             for fid, indi in self.tree.indi.items():
                 futures.add(loop.run_in_executor(None, indi.get_notes))
                 if ordi:
-                    futures.add(loop.run_in_executor(None, self.tree.add_ordinances, fid))
+                    futures.add(
+                        loop.run_in_executor(None, self.tree.add_ordinances, fid)
+                    )
                 if cont:
                     futures.add(loop.run_in_executor(None, indi.get_contributors))
             for fam in self.tree.fam.values():
@@ -576,7 +619,9 @@ class Download(Frame):
             t = round(time.time() - self.start_time)
             minutes = t // 60
             seconds = t % 60
-            self.time.config(text=_("Elapsed time: %s:%s") % (minutes, str(seconds).zfill(2)))
+            self.time.config(
+                text=_("Elapsed time: %s:%s") % (minutes, str(seconds).zfill(2))
+            )
 
     def update_gui(self):
         """ update widget """
@@ -590,7 +635,7 @@ class FStoGEDCOM(Notebook):
     """ Main notebook """
 
     def __init__(self, master, **kwargs):
-        super(FStoGEDCOM, self).__init__(master, width=400, **kwargs)
+        super().__init__(master, width=400, **kwargs)
         self.download = Download(self)
         self.merge = Merge(self)
         self.add(self.download, text=_("Download GEDCOM"))
@@ -607,10 +652,17 @@ class FStoGEDCOM(Notebook):
         self.merge.btn_add_file.config(text=_("Add files"))
 
 
-if __name__ == "__main__":
+def main():
     root = Tk()
     root.title("FamilySearch to GEDCOM")
     if sys.platform != "darwin":
-        root.iconphoto(True, PhotoImage(file="fstogedcom.png"))
+        root.iconphoto(
+            True,
+            PhotoImage(file=os.path.join(os.path.dirname(__file__), "fstogedcom.png")),
+        )
     fstogedcom = FStoGEDCOM(root)
     fstogedcom.mainloop()
+
+
+if __name__ == "__main__":
+    main()

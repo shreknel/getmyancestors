@@ -1,25 +1,4 @@
-#!/usr/bin/env python3
 # coding: utf-8
-"""
-   getmyancestors.py - Retrieve GEDCOM data from FamilySearch Tree
-   Copyright (C) 2014-2016 Giulio Genovese (giulio.genovese@gmail.com)
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-   Written by Giulio Genovese <giulio.genovese@gmail.com>
-   and by Benoît Fontaine <benoitfontaine.ba@gmail.com>
-"""
 
 # global import
 from __future__ import print_function
@@ -34,8 +13,8 @@ import requests
 import babelfish
 
 # local import
-from translation import translations
-
+import getmyancestors
+from getmyancestors.translation import translations
 
 # is subject to change: see https://www.familysearch.org/developers/docs/api/tree/Persons_resource
 MAX_PERSONS = 200
@@ -108,11 +87,11 @@ def cont(string):
 
 
 class Session:
-    """ Create a FamilySearch session
-        :param username and password: valid FamilySearch credentials
-        :param verbose: True to active verbose mode
-        :param logfile: a file object or similar
-        :param timeout: time before retry a request
+    """Create a FamilySearch session
+    :param username and password: valid FamilySearch credentials
+    :param verbose: True to active verbose mode
+    :param logfile: a file object or similar
+    :param timeout: time before retry a request
     """
 
     def __init__(self, username, password, verbose=False, logfile=False, timeout=60):
@@ -134,8 +113,8 @@ class Session:
             self.logfile.write(log)
 
     def login(self):
-        """ retrieve FamilySearch session ID
-            (https://familysearch.org/developers/docs/guides/oauth2)
+        """retrieve FamilySearch session ID
+        (https://familysearch.org/developers/docs/guides/oauth2)
         """
         while True:
             try:
@@ -153,7 +132,11 @@ class Session:
                 self.write_log("Downloading: " + url)
                 r = requests.post(
                     url,
-                    data={"params": params, "userName": self.username, "password": self.password},
+                    data={
+                        "params": params,
+                        "userName": self.username,
+                        "password": self.password,
+                    },
                     allow_redirects=False,
                 )
 
@@ -230,7 +213,8 @@ class Session:
                 if r.status_code == 403:
                     if (
                         "message" in r.json()["errors"][0]
-                        and r.json()["errors"][0]["message"] == "Unable to get ordinances."
+                        and r.json()["errors"][0]["message"]
+                        == "Unable to get ordinances."
                     ):
                         self.write_log(
                             "Unable to get ordinances. "
@@ -260,8 +244,8 @@ class Session:
             self.display_name = data["users"][0]["displayName"]
 
     def _(self, string):
-        """ translate a string into user's language
-            TODO replace translation file for gettext format
+        """translate a string into user's language
+        TODO replace translation file for gettext format
         """
         if string in translations and self.lang in translations[string]:
             return translations[string][self.lang]
@@ -269,10 +253,10 @@ class Session:
 
 
 class Note:
-    """ GEDCOM Note class
-        :param text: the Note content
-        :param tree: a Tree object
-        :param num: the GEDCOM identifier
+    """GEDCOM Note class
+    :param text: the Note content
+    :param tree: a Tree object
+    :param num: the GEDCOM identifier
     """
 
     counter = 0
@@ -298,10 +282,10 @@ class Note:
 
 
 class Source:
-    """ GEDCOM Source class
-        :param data: FS Source data
-        :param tree: a Tree object
-        :param num: the GEDCOM identifier
+    """GEDCOM Source class
+    :param data: FS Source data
+    :param tree: a Tree object
+    :param num: the GEDCOM identifier
     """
 
     counter = 0
@@ -351,9 +335,9 @@ class Source:
 
 
 class Fact:
-    """ GEDCOM Fact class
-        :param data: FS Fact data
-        :param tree: a tree object
+    """GEDCOM Fact class
+    :param data: FS Fact data
+    :param tree: a tree object
     """
 
     def __init__(self, data=None, tree=None):
@@ -378,12 +362,14 @@ class Fact:
                     self.map = tree.places[place["description"][1:]]
             if "changeMessage" in data["attribution"]:
                 self.note = Note(data["attribution"]["changeMessage"], tree)
-            if self.type == "http://gedcomx.org/Death" and not (self.date or self.place):
+            if self.type == "http://gedcomx.org/Death" and not (
+                self.date or self.place
+            ):
                 self.value = "Y"
 
     def print(self, file=sys.stdout):
-        """ print Fact in GEDCOM format
-            the GEDCOM TAG depends on the type, defined in FACT_TAGS
+        """print Fact in GEDCOM format
+        the GEDCOM TAG depends on the type, defined in FACT_TAGS
         """
         if self.type in FACT_TAGS:
             tmp = "1 " + FACT_TAGS[self.type]
@@ -408,8 +394,8 @@ class Fact:
 
 
 class Memorie:
-    """ GEDCOM Memorie class
-        :param data: FS Memorie data
+    """GEDCOM Memorie class
+    :param data: FS Memorie data
     """
 
     def __init__(self, data=None):
@@ -419,9 +405,9 @@ class Memorie:
             if "titles" in data:
                 self.description = data["titles"][0]["value"]
             if "descriptions" in data:
-                self.description = ("" if not self.description else self.description + "\n") + data[
-                    "descriptions"
-                ][0]["value"]
+                self.description = (
+                    "" if not self.description else self.description + "\n"
+                ) + data["descriptions"][0]["value"]
 
     def print(self, file=sys.stdout):
         """ print Memorie in GEDCOM format """
@@ -433,9 +419,9 @@ class Memorie:
 
 
 class Name:
-    """ GEDCOM Name class
-        :param data: FS Name data
-        :param tree: a Tree object
+    """GEDCOM Name class
+    :param data: FS Name data
+    :param tree: a Tree object
     """
 
     def __init__(self, data=None, tree=None):
@@ -459,8 +445,8 @@ class Name:
                 self.note = Note(data["attribution"]["changeMessage"], tree)
 
     def print(self, file=sys.stdout, typ=None):
-        """ print Name in GEDCOM format
-            :param typ: type for additional names
+        """print Name in GEDCOM format
+        :param typ: type for additional names
         """
         tmp = "1 NAME %s /%s/" % (self.given, self.surname)
         if self.suffix:
@@ -475,8 +461,8 @@ class Name:
 
 
 class Ordinance:
-    """ GEDCOM Ordinance class
-        :param data: FS Ordinance data
+    """GEDCOM Ordinance class
+    :param data: FS Ordinance data
     """
 
     def __init__(self, data=None):
@@ -501,10 +487,10 @@ class Ordinance:
 
 
 class Indi:
-    """ GEDCOM individual class
-        :param fid' FamilySearch id
-        :param tree: a tree object
-        :param num: the GEDCOM identifier
+    """GEDCOM individual class
+    :param fid' FamilySearch id
+    :param tree: a tree object
+    :param num: the GEDCOM identifier
     """
 
     counter = 0
@@ -574,7 +560,9 @@ class Indi:
                     else:
                         self.facts.add(Fact(x, self.tree))
             if "sources" in data:
-                sources = self.tree.fs.get_url("/platform/tree/persons/%s/sources" % self.fid)
+                sources = self.tree.fs.get_url(
+                    "/platform/tree/persons/%s/sources" % self.fid
+                )
                 if sources:
                     quotes = dict()
                     for quote in sources["persons"][0]["sources"]:
@@ -586,7 +574,9 @@ class Indi:
                     for source in sources["sourceDescriptions"]:
                         if source["id"] not in self.tree.sources:
                             self.tree.sources[source["id"]] = Source(source, self.tree)
-                        self.sources.add((self.tree.sources[source["id"]], quotes[source["id"]]))
+                        self.sources.add(
+                            (self.tree.sources[source["id"]], quotes[source["id"]])
+                        )
             if "evidence" in data:
                 url = "/platform/tree/persons/%s/memories" % self.fid
                 memorie = self.tree.fs.get_url(url)
@@ -595,7 +585,8 @@ class Indi:
                         if x["mediaType"] == "text/plain":
                             text = "\n".join(
                                 val.get("value", "")
-                                for val in x.get("titles", []) + x.get("descriptions", [])
+                                for val in x.get("titles", [])
+                                + x.get("descriptions", [])
                             )
                             self.notes.add(Note(text, self.tree))
                         else:
@@ -619,8 +610,8 @@ class Indi:
                 self.notes.add(Note(text_note, self.tree))
 
     def get_ordinances(self):
-        """ retrieve LDS ordinances
-            need a LDS account
+        """retrieve LDS ordinances
+        need a LDS account
         """
         res = []
         famc = False
@@ -660,7 +651,10 @@ class Indi:
                 for contributors in entries["contributors"]:
                     temp.add(contributors["name"])
         if temp:
-            text = "=== %s ===\n%s" % (self.tree.fs._("Contributors"), "\n".join(sorted(temp)))
+            text = "=== %s ===\n%s" % (
+                self.tree.fs._("Contributors"),
+                "\n".join(sorted(temp)),
+            )
             for n in self.tree.notes:
                 if n.text == text:
                     self.notes.add(n)
@@ -715,11 +709,11 @@ class Indi:
 
 
 class Fam:
-    """ GEDCOM family class
-        :param husb: husbant fid
-        :param wife: wife fid
-        :param tree: a Tree object
-        :param num: a GEDCOM identifier
+    """GEDCOM family class
+    :param husb: husbant fid
+    :param wife: wife fid
+    :param tree: a Tree object
+    :param num: a GEDCOM identifier
     """
 
     counter = 0
@@ -747,8 +741,8 @@ class Fam:
             self.chil_fid.add(child)
 
     def add_marriage(self, fid):
-        """ retrieve and add marriage information
-            :param fid: the marriage fid
+        """retrieve and add marriage information
+        :param fid: the marriage fid
         """
         if not self.fid:
             self.fid = fid
@@ -776,14 +770,20 @@ class Fam:
                                 source["id"] in new_sources
                                 and source["id"] not in self.tree.sources
                             ):
-                                self.tree.sources[source["id"]] = Source(source, self.tree)
+                                self.tree.sources[source["id"]] = Source(
+                                    source, self.tree
+                                )
                     for source_fid in quotes:
-                        self.sources.add((self.tree.sources[source_fid], quotes[source_fid]))
+                        self.sources.add(
+                            (self.tree.sources[source_fid], quotes[source_fid])
+                        )
 
     def get_notes(self):
         """ retrieve marriage notes """
         if self.fid:
-            notes = self.tree.fs.get_url("/platform/tree/couple-relationships/%s/notes" % self.fid)
+            notes = self.tree.fs.get_url(
+                "/platform/tree/couple-relationships/%s/notes" % self.fid
+            )
             if notes:
                 for n in notes["relationships"][0]["notes"]:
                     text_note = "=== %s ===\n" % n["subject"] if "subject" in n else ""
@@ -795,13 +795,18 @@ class Fam:
         if self.fid:
             temp = set()
             url = "/platform/tree/couple-relationships/%s/changes" % self.fid
-            data = self.tree.fs.get_url(url, {"Accept": "application/x-gedcomx-atom+json"})
+            data = self.tree.fs.get_url(
+                url, {"Accept": "application/x-gedcomx-atom+json"}
+            )
             if data:
                 for entries in data["entries"]:
                     for contributors in entries["contributors"]:
                         temp.add(contributors["name"])
             if temp:
-                text = "=== %s ===\n%s" % (self.tree.fs._("Contributors"), "\n".join(sorted(temp)))
+                text = "=== %s ===\n%s" % (
+                    self.tree.fs._("Contributors"),
+                    "\n".join(sorted(temp)),
+                )
                 for n in self.tree.notes:
                     if n.text == text:
                         self.notes.add(n)
@@ -833,8 +838,8 @@ class Fam:
 
 
 class Tree:
-    """ family tree class
-        :param fs: a Session object
+    """family tree class
+    :param fs: a Session object
     """
 
     def __init__(self, fs=None):
@@ -850,15 +855,17 @@ class Tree:
             self.lang = babelfish.Language.fromalpha2(fs.lang).name
 
     def add_indis(self, fids):
-        """ add individuals to the family tree
-            :param fids: an iterable of fid
+        """add individuals to the family tree
+        :param fids: an iterable of fid
         """
 
         async def add_datas(loop, data):
             futures = set()
             for person in data["persons"]:
                 self.indi[person["id"]] = Indi(person["id"], self)
-                futures.add(loop.run_in_executor(None, self.indi[person["id"]].add_data, person))
+                futures.add(
+                    loop.run_in_executor(None, self.indi[person["id"]].add_data, person)
+                )
             for future in futures:
                 await future
 
@@ -880,8 +887,12 @@ class Tree:
                 loop.run_until_complete(add_datas(loop, data))
                 if "childAndParentsRelationships" in data:
                     for rel in data["childAndParentsRelationships"]:
-                        father = rel["parent1"]["resourceId"] if "parent1" in rel else None
-                        mother = rel["parent2"]["resourceId"] if "parent2" in rel else None
+                        father = (
+                            rel["parent1"]["resourceId"] if "parent1" in rel else None
+                        )
+                        mother = (
+                            rel["parent2"]["resourceId"] if "parent2" in rel else None
+                        )
                         child = rel["child"]["resourceId"] if "child" in rel else None
                         if child in self.indi:
                             self.indi[child].parents.add((father, mother))
@@ -896,24 +907,28 @@ class Tree:
                             person2 = rel["person2"]["resourceId"]
                             relfid = rel["id"]
                             if person1 in self.indi:
-                                self.indi[person1].spouses.add((person1, person2, relfid))
+                                self.indi[person1].spouses.add(
+                                    (person1, person2, relfid)
+                                )
                             if person2 in self.indi:
-                                self.indi[person2].spouses.add((person1, person2, relfid))
+                                self.indi[person2].spouses.add(
+                                    (person1, person2, relfid)
+                                )
             new_fids = new_fids[MAX_PERSONS:]
 
     def add_fam(self, father, mother):
-        """ add a family to the family tree
-            :param father: the father fid or None
-            :param mother: the mother fid or None
+        """add a family to the family tree
+        :param father: the father fid or None
+        :param mother: the mother fid or None
         """
         if (father, mother) not in self.fam:
             self.fam[(father, mother)] = Fam(father, mother, self)
 
     def add_trio(self, father, mother, child):
-        """ add a children relationship to the family tree
-            :param father: the father fid or None
-            :param mother: the mother fid or None
-            :param child: the child fid or None
+        """add a children relationship to the family tree
+        :param father: the father fid or None
+        :param mother: the mother fid or None
+        :param child: the child fid or None
         """
         if father in self.indi:
             self.indi[father].add_fams((father, mother))
@@ -925,8 +940,8 @@ class Tree:
             self.fam[(father, mother)].add_child(child)
 
     def add_parents(self, fids):
-        """ add parents relationships
-           :param fids: a set of fids
+        """add parents relationships
+        :param fids: a set of fids
         """
         parents = set()
         for fid in fids & self.indi.keys():
@@ -948,8 +963,8 @@ class Tree:
         return set(filter(None, parents))
 
     def add_spouses(self, fids):
-        """ add spouse relationships
-            :param fids: a set of fid
+        """add spouse relationships
+        :param fids: a set of fid
         """
 
         async def add(loop, rels):
@@ -957,7 +972,9 @@ class Tree:
             for father, mother, relfid in rels:
                 if (father, mother) in self.fam:
                     futures.add(
-                        loop.run_in_executor(None, self.fam[(father, mother)].add_marriage, relfid)
+                        loop.run_in_executor(
+                            None, self.fam[(father, mother)].add_marriage, relfid
+                        )
                     )
             for future in futures:
                 await future
@@ -967,7 +984,9 @@ class Tree:
             rels |= self.indi[fid].spouses
         loop = asyncio.get_event_loop()
         if rels:
-            self.add_indis(set.union(*({father, mother} for father, mother, relfid in rels)))
+            self.add_indis(
+                set.union(*({father, mother} for father, mother, relfid in rels))
+            )
             for father, mother, _ in rels:
                 if father in self.indi and mother in self.indi:
                     self.indi[father].add_fams((father, mother))
@@ -976,8 +995,8 @@ class Tree:
             loop.run_until_complete(add(loop, rels))
 
     def add_children(self, fids):
-        """ add children relationships
-            :param fids: a set of fid
+        """add children relationships
+        :param fids: a set of fid
         """
         rels = set()
         for fid in fids & self.indi.keys():
@@ -999,8 +1018,8 @@ class Tree:
         return children
 
     def add_ordinances(self, fid):
-        """ retrieve ordinances
-            :param fid: an individual fid
+        """retrieve ordinances
+        :param fid: an individual fid
         """
         if fid in self.indi:
             ret, famc = self.indi[fid].get_ordinances()
@@ -1034,10 +1053,10 @@ class Tree:
         file.write("0 HEAD\n")
         file.write("1 CHAR UTF-8\n")
         file.write("1 GEDC\n")
-        file.write("2 VERS 5.5.1\n")
+        file.write("2 VERS 5.1.1\n")
         file.write("2 FORM LINEAGE-LINKED\n")
         file.write("1 SOUR getmyancestors\n")
-        file.write("2 VERS 1.0\n")
+        file.write("2 VERS %s\n" % getmyancestors.__version__)
         file.write("2 NAME getmyancestors\n")
         file.write("1 DATE %s\n" % time.strftime("%d %b %Y"))
         file.write("2 TIME %s\n" % time.strftime("%H:%M:%S"))
@@ -1066,10 +1085,14 @@ def main():
     parser = argparse.ArgumentParser(
         description="Retrieve GEDCOM data from FamilySearch Tree (4 Jul 2016)",
         add_help=False,
-        usage="getmyancestors.py -u username -p password [options]",
+        usage="getmyancestors -u username -p password [options]",
     )
-    parser.add_argument("-u", "--username", metavar="<STR>", type=str, help="FamilySearch username")
-    parser.add_argument("-p", "--password", metavar="<STR>", type=str, help="FamilySearch password")
+    parser.add_argument(
+        "-u", "--username", metavar="<STR>", type=str, help="FamilySearch username"
+    )
+    parser.add_argument(
+        "-p", "--password", metavar="<STR>", type=str, help="FamilySearch password"
+    )
     parser.add_argument(
         "-i",
         "--individuals",
@@ -1123,13 +1146,24 @@ def main():
         help="Increase output verbosity [False]",
     )
     parser.add_argument(
-        "-t", "--timeout", metavar="<INT>", type=int, default=60, help="Timeout in seconds [60]"
+        "-t",
+        "--timeout",
+        metavar="<INT>",
+        type=int,
+        default=60,
+        help="Timeout in seconds [60]",
     )
     parser.add_argument(
         "--show-password",
         action="store_true",
         default=False,
         help="Show password in .settings file [False]",
+    )
+    parser.add_argument(
+        "--save-settings",
+        action="store_true",
+        default=False,
+        help="Save settings into file [False]",
     )
     try:
         parser.add_argument(
@@ -1165,15 +1199,19 @@ def main():
             if not re.match(r"[A-Z0-9]{4}-[A-Z0-9]{3}", fid):
                 sys.exit("Invalid FamilySearch ID: " + fid)
 
-    args.username = args.username if args.username else input("Enter FamilySearch username: ")
+    args.username = (
+        args.username if args.username else input("Enter FamilySearch username: ")
+    )
     args.password = (
-        args.password if args.password else getpass.getpass("Enter FamilySearch password: ")
+        args.password
+        if args.password
+        else getpass.getpass("Enter FamilySearch password: ")
     )
 
     time_count = time.time()
 
-    # Report settings used when getmyancestors.py is executed.
-    if args.outfile.name != "<stdout>":
+    # Report settings used when getmyancestors is executed.
+    if args.save_settings and args.outfile.name != "<stdout>":
 
         def parse_action(act):
             if not args.show_password and act.dest == "password":
@@ -1185,13 +1223,19 @@ def main():
         settings_name = args.outfile.name.split(".")[0] + ".settings"
         try:
             with open(settings_name, "w") as settings_file:
-                settings_file.write(formatting.format("time stamp: ", time.strftime("%X %x %Z")))
+                settings_file.write(
+                    formatting.format("time stamp: ", time.strftime("%X %x %Z"))
+                )
                 for action in parser._actions:
                     settings_file.write(
-                        formatting.format(action.option_strings[-1], parse_action(action))
+                        formatting.format(
+                            action.option_strings[-1], parse_action(action)
+                        )
                     )
         except OSError as exc:
-            print("Unable to write %s: %s" % (settings_name, repr(exc)), file=sys.stderr)
+            print(
+                "Unable to write %s: %s" % (settings_name, repr(exc)), file=sys.stderr
+            )
 
     # initialize a FamilySearch session and a family tree object
     print("Login to FamilySearch...", file=sys.stderr)
@@ -1203,7 +1247,9 @@ def main():
 
     # check LDS account
     if args.get_ordinances:
-        test = fs.get_url("/service/tree/tree-data/reservations/person/%s/ordinances" % fs.fid, {})
+        test = fs.get_url(
+            "/service/tree/tree-data/reservations/person/%s/ordinances" % fs.fid, {}
+        )
         if test["status"] != "OK":
             sys.exit(2)
 
@@ -1220,8 +1266,10 @@ def main():
             if not todo:
                 break
             done |= todo
-            print(_("Downloading %s. of generations of ancestors...") % (i + 1),
-                  file=sys.stderr)
+            print(
+                _("Downloading %s. of generations of ancestors...") % (i + 1),
+                file=sys.stderr,
+            )
             todo = tree.add_parents(todo) - done
 
         # download descendants
@@ -1231,14 +1279,15 @@ def main():
             if not todo:
                 break
             done |= todo
-            print(_("Downloading %s. of generations of descendants...") %
-                  (i + 1), file=sys.stderr)
+            print(
+                _("Downloading %s. of generations of descendants...") % (i + 1),
+                file=sys.stderr,
+            )
             todo = tree.add_children(todo) - done
 
         # download spouses
         if args.marriage:
-            print(_("Downloading spouses and marriage information..."),
-                  file=sys.stderr)
+            print(_("Downloading spouses and marriage information..."), file=sys.stderr)
             todo = set(tree.indi.keys())
             tree.add_spouses(todo)
 
@@ -1268,7 +1317,7 @@ def main():
             )
             + (_(" and contributors") if args.get_contributors else "")
             + "...",
-            file=sys.stderr
+            file=sys.stderr,
         )
         loop.run_until_complete(download_stuff(loop))
 
@@ -1289,7 +1338,7 @@ def main():
                 str(round(time.time() - time_count)),
                 str(fs.counter),
             ),
-            file=sys.stderr
+            file=sys.stderr,
         )
 
 

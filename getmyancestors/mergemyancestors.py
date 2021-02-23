@@ -1,25 +1,4 @@
-#!/usr/bin/env python3
 # coding: utf-8
-"""
-   mergemyancestors.py - Merge GEDCOM data from FamilySearch Tree
-   Copyright (C) 2014-2016 Giulio Genovese (giulio.genovese@gmail.com)
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-   Written by Giulio Genovese <giulio.genovese@gmail.com>
-   and by Benoît Fontaine <benoitfontaine.ba@gmail.com>
-"""
 
 from __future__ import print_function
 
@@ -29,7 +8,7 @@ import sys
 import argparse
 
 # local import
-import getmyancestors as gt
+import getmyancestors.getmyancestors as gt
 
 sys.path.append(os.path.dirname(sys.argv[0]))
 
@@ -96,8 +75,8 @@ class Gedcom:
         self.flag = True
 
     def __get_line(self):
-        """ Parse a new line
-            If the flag is set, skip reading a newline
+        """Parse a new line
+        If the flag is set, skip reading a newline
         """
         if self.flag:
             self.flag = False
@@ -344,16 +323,20 @@ class Gedcom:
                 self.fam[num].chil_fid.add(self.indi[chil].fid)
         for num in self.indi:
             for famc in self.indi[num].famc_num:
-                self.indi[num].famc_fid.add((self.fam[famc].husb_fid, self.fam[famc].wife_fid))
+                self.indi[num].famc_fid.add(
+                    (self.fam[famc].husb_fid, self.fam[famc].wife_fid)
+                )
             for fams in self.indi[num].fams_num:
-                self.indi[num].fams_fid.add((self.fam[fams].husb_fid, self.fam[fams].wife_fid))
+                self.indi[num].fams_fid.add(
+                    (self.fam[fams].husb_fid, self.fam[fams].wife_fid)
+                )
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description="Merge GEDCOM data from FamilySearch Tree (4 Jul 2016)",
         add_help=False,
-        usage="mergemyancestors.py -i input1.ged input2.ged ... [options]",
+        usage="mergemyancestors -i input1.ged input2.ged ... [options]",
     )
     try:
         parser.add_argument(
@@ -361,7 +344,7 @@ if __name__ == "__main__":
             metavar="<FILE>",
             nargs="+",
             type=argparse.FileType("r", encoding="UTF-8"),
-            default=sys.stdin,
+            default=[sys.stdin],
             help="input GEDCOM files [stdin]",
         )
         parser.add_argument(
@@ -453,3 +436,7 @@ if __name__ == "__main__":
     # compute number for family relationships and print GEDCOM file
     tree.reset_num()
     tree.print(args.o)
+
+
+if __name__ == "__main__":
+    main()
