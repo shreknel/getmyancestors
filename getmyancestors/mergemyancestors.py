@@ -8,14 +8,8 @@ import sys
 import argparse
 
 # local imports
-from getmyancestors.classes.classes import Indi, Fam, Tree, Gedcom
-
-from getmyancestors.constants import (
-    FACT_TAGS,
-    FACT_TYPES,
-    ORDINANCES,
-    ORDINANCES_STATUS,
-)
+from getmyancestors.classes.tree import Indi, Fam, Tree
+from getmyancestors.classes.gedcom import Gedcom
 
 sys.path.append(os.path.dirname(sys.argv[0]))
 
