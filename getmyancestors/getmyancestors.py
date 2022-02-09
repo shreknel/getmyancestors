@@ -11,19 +11,8 @@ import asyncio
 import argparse
 
 # local imports
-import getmyancestors
-
-from getmyancestors.classes.tree import (
-    Tree,
-)
+from getmyancestors.classes.tree import Tree
 from getmyancestors.classes.session import Session
-from getmyancestors.classes.translation import translations
-from getmyancestors.classes.constants import (
-    FACT_TAGS,
-    FACT_EVEN,
-    MAX_PERSONS,
-    ORDINANCES_STATUS,
-)
 
 
 def main():

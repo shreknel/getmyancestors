@@ -1,6 +1,16 @@
 # mergemyancestors classes
-from getmyancestors.classes.tree import Indi, Fact, Fam, Memorie, Name, Note, Source
-from getmyancestors.classes.constants import FACT_TYPES
+from getmyancestors.classes.tree import (
+    Indi,
+    Fact,
+    Fam,
+    Memorie,
+    Name,
+    Note,
+    Ordinance,
+    Source,
+)
+from getmyancestors.classes.constants import FACT_TYPES, ORDINANCES
+
 
 class Gedcom:
     """Parse a GEDCOM file into a Tree"""
@@ -311,5 +321,3 @@ class Gedcom:
                 self.indi[num].fams_fid.add(
                     (self.fam[fams].husb_fid, self.fam[fams].wife_fid)
                 )
-
-
