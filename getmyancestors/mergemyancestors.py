@@ -8,7 +8,7 @@ import sys
 import argparse
 
 # local imports
-from getmyancestors.classes import Indi, Fam, Tree, Gedcom
+from getmyancestors.classes.classes import Indi, Fam, Tree, Gedcom
 
 from getmyancestors.constants import (
     FACT_TAGS,

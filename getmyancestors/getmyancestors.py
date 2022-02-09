@@ -13,7 +13,7 @@ import argparse
 # local imports
 import getmyancestors
 from getmyancestors.translation import translations
-from getmyancestors.classes import (
+from getmyancestors.classes.classes import (
     Session,
     Note,
     Source,

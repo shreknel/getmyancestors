@@ -23,7 +23,7 @@ from threading import Thread
 from diskcache import Cache
 
 # local imports
-from getmyancestors.classes import (
+from getmyancestors.classes.classes import (
     Session,
     Tree,
     Indi,
