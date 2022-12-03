@@ -3,6 +3,7 @@ import sys
 import time
 
 import requests
+from fake_useragent import UserAgent
 
 # local imports
 from getmyancestors.classes.translation import translations
@@ -24,6 +25,7 @@ class Session:
         self.timeout = timeout
         self.fid = self.lang = self.display_name = None
         self.counter = 0
+        self.headers = {"User-Agent": UserAgent().firefox}
         self.logged = self.login()
 
     def write_log(self, text):
@@ -42,10 +44,15 @@ class Session:
             try:
                 url = "https://www.familysearch.org/auth/familysearch/login"
                 self.write_log("Downloading: " + url)
-                r = requests.get(url, params={"ldsauth": False}, allow_redirects=False)
+                r = requests.get(
+                    url,
+                    params={"ldsauth": False},
+                    allow_redirects=False,
+                    headers=self.headers,
+                )
                 url = r.headers["Location"]
                 self.write_log("Downloading: " + url)
-                r = requests.get(url, allow_redirects=False)
+                r = requests.get(url, allow_redirects=False, headers=self.headers)
                 idx = r.text.index('name="params" value="')
                 span = r.text[idx + 21 :].index('"')
                 params = r.text[idx + 21 : idx + 21 + span]
@@ -60,6 +67,7 @@ class Session:
                         "password": self.password,
                     },
                     allow_redirects=False,
+                    headers=self.headers,
                 )
 
                 if "The username or password was incorrect" in r.text:
@@ -73,7 +81,7 @@ class Session:
 
                 url = r.headers["Location"]
                 self.write_log("Downloading: " + url)
-                r = requests.get(url, allow_redirects=False)
+                r = requests.get(url, allow_redirects=False, headers=self.headers)
                 self.fssessionid = r.cookies["fssessionid"]
             except requests.exceptions.ReadTimeout:
                 self.write_log("Read timed out")
@@ -103,6 +111,7 @@ class Session:
         self.counter += 1
         if headers is None:
             headers = {"Accept": "application/x-gedcomx-v1+json"}
+        headers.update(self.headers)
         while True:
             try:
                 self.write_log("Downloading: " + url)
