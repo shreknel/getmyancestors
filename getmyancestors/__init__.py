@@ -1,6 +1,7 @@
 # coding: utf-8
 
+from importlib.metadata import version as _version
 from . import getmyancestors
 from . import mergemyancestors
 
-__version__ = "1.0.2-rc.2"
+__version__ = _version(__name__)
