@@ -248,16 +248,23 @@ class SignIn(Frame):
         self.username = StringVar()
         self.username.set(cache.get("username") or "")
         self.password = StringVar()
+        self.password.set(cache.get("password") or "")
         label_username = Label(self, text=_("Username:"))
         entry_username = EntryWithMenu(self, textvariable=self.username, width=30)
         label_password = Label(self, text=_("Password:"))
         entry_password = EntryWithMenu(
             self, show="●", textvariable=self.password, width=30
         )
+
+        self.save_password = IntVar()
+        self.save_password.set(cache.get("save_password") or 0)
+        check_save_password = Checkbutton(self, text=_("Save Password"), variable=self.save_password, onvalue=1, offvalue=0)
+
         label_username.grid(row=0, column=0, pady=15, padx=(0, 5))
         entry_username.grid(row=0, column=1)
         label_password.grid(row=1, column=0, padx=(0, 5))
         entry_password.grid(row=1, column=1)
+        check_save_password.grid(row=2, column=1, pady=5)
         entry_username.focus_set()
         entry_username.bind("<Key>", self.enter)
         entry_password.bind("<Key>", self.enter)
@@ -493,6 +500,17 @@ class Download(Frame):
         cache.add("lang", self.fs.lang)
         cache.delete("username")
         cache.add("username", username)
+
+        cache.delete("password")
+        # cache password  only when checked
+
+        save_pass = self.sign_in.save_password.get()
+        if save_pass == 1:
+            cache.add("password", password)
+
+        cache.delete("save_password")
+        cache.add("save_password", save_pass)
+
         url = "/service/tree/tree-data/reservations/person/%s/ordinances" % self.fs.fid
         lds_account = self.fs.get_url(url, {}).get("status") == "OK"
         self.options = Options(self.form, lds_account)
