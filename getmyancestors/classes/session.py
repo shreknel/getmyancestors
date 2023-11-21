@@ -9,7 +9,7 @@ from fake_useragent import UserAgent
 from getmyancestors.classes.translation import translations
 
 
-class Session:
+class Session(requests.Session):
     """Create a FamilySearch session
     :param username and password: valid FamilySearch credentials
     :param verbose: True to active verbose mode
@@ -18,6 +18,7 @@ class Session:
     """
 
     def __init__(self, username, password, verbose=False, logfile=False, timeout=60):
+        super().__init__()
         self.username = username
         self.password = password
         self.verbose = verbose
@@ -26,7 +27,11 @@ class Session:
         self.fid = self.lang = self.display_name = None
         self.counter = 0
         self.headers = {"User-Agent": UserAgent().firefox}
-        self.logged = self.login()
+        self.login()
+
+    @property
+    def logged(self):
+        return bool(self.cookies.get("fssessionid"))
 
     def write_log(self, text):
         """write text in the log file"""
@@ -44,45 +49,35 @@ class Session:
             try:
                 url = "https://www.familysearch.org/auth/familysearch/login"
                 self.write_log("Downloading: " + url)
-                r = requests.get(
-                    url,
-                    params={"ldsauth": False},
-                    allow_redirects=False,
-                    headers=self.headers,
-                )
-                url = r.headers["Location"]
+                self.get(url, headers=self.headers)
+                xsrf = self.cookies["XSRF-TOKEN"]
+                url = "https://ident.familysearch.org/login"
                 self.write_log("Downloading: " + url)
-                r = requests.get(url, allow_redirects=False, headers=self.headers)
-                idx = r.text.index('name="params" value="')
-                span = r.text[idx + 21 :].index('"')
-                params = r.text[idx + 21 : idx + 21 + span]
-
-                url = "https://ident.familysearch.org/cis-web/oauth2/v3/authorization"
-                self.write_log("Downloading: " + url)
-                r = requests.post(
+                res = self.post(
                     url,
                     data={
-                        "params": params,
-                        "userName": self.username,
+                        "_csrf": xsrf,
+                        "username": self.username,
                         "password": self.password,
                     },
-                    allow_redirects=False,
                     headers=self.headers,
                 )
-
-                if "The username or password was incorrect" in r.text:
-                    self.write_log("The username or password was incorrect")
-                    return False
-
-                if "Invalid Oauth2 Request" in r.text:
-                    self.write_log("Invalid Oauth2 Request")
-                    time.sleep(self.timeout)
+                try:
+                    data = res.json()
+                except ValueError:
+                    self.write_log("Invalid auth request")
+                    continue
+                if "loginError" in data:
+                    self.write_log(data["loginError"])
+                    return
+                if "redirectUrl" not in data:
+                    self.write_log(res.text)
                     continue
 
-                url = r.headers["Location"]
+                url = data["redirectUrl"]
                 self.write_log("Downloading: " + url)
-                r = requests.get(url, allow_redirects=False, headers=self.headers)
-                self.fssessionid = r.cookies["fssessionid"]
+                res = self.get(url, headers=self.headers)
+                res.raise_for_status()
             except requests.exceptions.ReadTimeout:
                 self.write_log("Read timed out")
                 continue
@@ -102,9 +97,9 @@ class Session:
                 self.write_log("ValueError")
                 time.sleep(self.timeout)
                 continue
-            self.write_log("FamilySearch session id: " + self.fssessionid)
-            self.set_current()
-            return True
+            if self.logged:
+                self.set_current()
+                break
 
     def get_url(self, url, headers=None):
         """retrieve JSON structure from a FamilySearch URL"""
@@ -115,9 +110,8 @@ class Session:
         while True:
             try:
                 self.write_log("Downloading: " + url)
-                r = requests.get(
+                r = self.get(
                     "https://familysearch.org" + url,
-                    cookies={"fssessionid": self.fssessionid},
                     timeout=self.timeout,
                     headers=headers,
                 )
