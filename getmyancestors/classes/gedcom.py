@@ -100,6 +100,8 @@ class Gedcom:
                 self.indi[self.num].baptism = self.__get_ordinance()
             elif self.tag == "CONL":
                 self.indi[self.num].confirmation = self.__get_ordinance()
+            elif self.tag == "WAC":
+                self.indi[self.num].initiatory = self.__get_ordinance()
             elif self.tag == "ENDL":
                 self.indi[self.num].endowment = self.__get_ordinance()
             elif self.tag == "SLGC":

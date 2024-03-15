@@ -82,6 +82,7 @@ def main():
             tree.indi[fid].memories = ged.indi[num].memories
             tree.indi[fid].baptism = ged.indi[num].baptism
             tree.indi[fid].confirmation = ged.indi[num].confirmation
+            tree.indi[fid].initiatory = ged.indi[num].initiatory
             tree.indi[fid].endowment = ged.indi[num].endowment
             if not (tree.indi[fid].sealing_child and tree.indi[fid].sealing_child.famc):
                 tree.indi[fid].sealing_child = ged.indi[num].sealing_child
