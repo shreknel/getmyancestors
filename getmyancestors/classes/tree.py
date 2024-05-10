@@ -16,6 +16,7 @@ from getmyancestors.classes.constants import (
     ORDINANCES_STATUS,
 )
 
+
 # getmyancestors classes and functions
 def cont(string):
     """parse a GEDCOM line adding CONT and CONT tags if necessary"""
@@ -367,8 +368,9 @@ class Indi:
                         self.sources.add(
                             (self.tree.sources[source["id"]], quotes[source["id"]])
                         )
-            if "evidence" in data:
-                url = "/platform/tree/persons/%s/memories" % self.fid
+            for evidence in data.get("evidence", []):
+                memory_id, *_ = evidence["id"].partition("-")
+                url = "/platform/memories/memories/%s" % memory_id
                 memorie = self.tree.fs.get_url(url)
                 if memorie and "sourceDescriptions" in memorie:
                     for x in memorie["sourceDescriptions"]:
