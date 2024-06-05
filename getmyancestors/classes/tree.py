@@ -845,7 +845,7 @@ class Tree:
         file.write("0 HEAD\n")
         file.write("1 CHAR UTF-8\n")
         file.write("1 GEDC\n")
-        file.write("2 VERS 5.1.1\n")
+        file.write("2 VERS 5.5.1\n")
         file.write("2 FORM LINEAGE-LINKED\n")
         file.write("1 SOUR getmyancestors\n")
         file.write("2 VERS %s\n" % getmyancestors.__version__)
