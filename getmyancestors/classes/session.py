@@ -143,7 +143,7 @@ class Session(requests.Session):
             try:
                 self.write_log("Downloading: " + url)
                 r = self.get(
-                    "https://familysearch.org" + url,
+                    "https://api.familysearch.org" + url,
                     timeout=self.timeout,
                     headers=headers,
                 )
