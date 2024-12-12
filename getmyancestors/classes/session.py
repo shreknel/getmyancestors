@@ -2,6 +2,7 @@
 import sys
 import time
 from urllib.parse import urlparse, parse_qs
+import webbrowser
 
 import requests
 from fake_useragent import UserAgent
@@ -18,10 +19,21 @@ class Session(requests.Session):
     :param timeout: time before retry a request
     """
 
-    def __init__(self, username, password, verbose=False, logfile=False, timeout=60):
+    def __init__(
+        self,
+        username,
+        password,
+        client_id,
+        redirect_uri,
+        verbose=False,
+        logfile=False,
+        timeout=60,
+    ):
         super().__init__()
         self.username = username
         self.password = password
+        self.client_id = client_id
+        self.redirect_uri = redirect_uri
         self.verbose = verbose
         self.logfile = logfile
         self.timeout = timeout
@@ -53,7 +65,7 @@ class Session(requests.Session):
                 self.get(url, headers=self.headers)
                 xsrf = self.cookies["XSRF-TOKEN"]
                 url = "https://ident.familysearch.org/login"
-                self.write_log("Downloading: " + url)
+                self.write_log("Logging in: " + url)
                 res = self.post(
                     url,
                     data={
@@ -63,37 +75,37 @@ class Session(requests.Session):
                     },
                     headers=self.headers,
                 )
-                try:
-                    data = res.json()
-                except ValueError:
-                    self.write_log("Invalid auth request")
-                    continue
-                if "loginError" in data:
-                    self.write_log(data["loginError"])
-                    return
-                if "redirectUrl" not in data:
-                    self.write_log(res.text)
-                    continue
-
-                url = data["redirectUrl"]
-                self.write_log("Downloading: " + url)
-                res = self.get(url, headers=self.headers)
                 res.raise_for_status()
 
-                url = f"https://ident.familysearch.org/cis-web/oauth2/v3/authorization?response_type=code&scope=openid profile email qualifies_for_affiliate_account country&client_id=a02j000000KTRjpAAH&redirect_uri=https://misbach.github.io/fs-auth/index_raw.html&username={self.username}"
-                self.write_log("Downloading: " + url)
-                response = self.get(url, allow_redirects=False, headers=self.headers)
-                location = response.headers["location"]
-                code = parse_qs(urlparse(location).query).get("code")
+                url = f"https://ident.familysearch.org/cis-web/oauth2/v3/authorization"
+                params = {
+                    "response_type": "code",
+                    "scope": "profile email qualifies_for_affiliate_account country",
+                    "client_id": self.client_id,
+                    "redirect_uri": self.redirect_uri,
+                    "username": self.username,
+                }
+                self.write_log("Getting an authorization code: " + url)
+                response = self.get(url, headers=self.headers, params=params)
+                response.raise_for_status()
+                try:
+                    code = parse_qs(urlparse(response.url).query).get("code")[0]
+                except Exception as e:
+                    webbrowser.open(response.url)
+                    print(
+                        "Please log in to the web page that just opened and try again."
+                    )
+                    sys.exit(2)
+
                 url = "https://ident.familysearch.org/cis-web/oauth2/v3/token"
-                self.write_log("Downloading: " + url)
+                self.write_log("Exchanging for an access token: " + url)
                 res = self.post(
                     url,
                     data={
                         "grant_type": "authorization_code",
-                        "client_id": "a02j000000KTRjpAAH",
+                        "client_id": self.client_id,
                         "code": code,
-                        "redirect_uri": "https://misbach.github.io/fs-auth/index_raw.html",
+                        "redirect_uri": self.redirect_uri,
                     },
                     headers=self.headers,
                 )
@@ -133,20 +145,19 @@ class Session(requests.Session):
                 self.set_current()
                 break
 
-    def get_url(self, url, headers=None):
+    def get_url(self, url, headers=None, no_api=False):
         """retrieve JSON structure from a FamilySearch URL"""
         self.counter += 1
         if headers is None:
             headers = {"Accept": "application/x-gedcomx-v1+json"}
         headers.update(self.headers)
+        base = "https://api.familysearch.org"
+        if no_api:
+            base = "https://familysearch.org"
         while True:
             try:
                 self.write_log("Downloading: " + url)
-                r = self.get(
-                    "https://api.familysearch.org" + url,
-                    timeout=self.timeout,
-                    headers=headers,
-                )
+                r = self.get(base + url, timeout=self.timeout, headers=headers)
             except requests.exceptions.ReadTimeout:
                 self.write_log("Read timed out")
                 continue

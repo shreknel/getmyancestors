@@ -14,6 +14,9 @@ import argparse
 from getmyancestors.classes.tree import Tree
 from getmyancestors.classes.session import Session
 
+DEFAULT_CLIENT_ID = "a02j000000KTRjpAAH"
+DEFAULT_REDIRECT_URI = "https://misbach.github.io/fs-auth/index_raw.html"
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -99,27 +102,28 @@ def main():
         default=False,
         help="Save settings into file [False]",
     )
-    try:
-        parser.add_argument(
-            "-o",
-            "--outfile",
-            metavar="<FILE>",
-            type=argparse.FileType("w", encoding="UTF-8"),
-            default=sys.stdout,
-            help="output GEDCOM file [stdout]",
-        )
-        parser.add_argument(
-            "-l",
-            "--logfile",
-            metavar="<FILE>",
-            type=argparse.FileType("w", encoding="UTF-8"),
-            default=False,
-            help="output log file [stderr]",
-        )
-    except TypeError:
-        sys.stderr.write("Python >= 3.4 is required to run this script\n")
-        sys.stderr.write("(see https://docs.python.org/3/whatsnew/3.4.html#argparse)\n")
-        sys.exit(2)
+    parser.add_argument(
+        "-o",
+        "--outfile",
+        metavar="<FILE>",
+        type=argparse.FileType("w", encoding="UTF-8"),
+        default=sys.stdout,
+        help="output GEDCOM file [stdout]",
+    )
+    parser.add_argument(
+        "-l",
+        "--logfile",
+        metavar="<FILE>",
+        type=argparse.FileType("w", encoding="UTF-8"),
+        default=False,
+        help="output log file [stderr]",
+    )
+    parser.add_argument(
+        "--client_id", metavar="<STR>", type=str, help="Use Specific Client ID"
+    )
+    parser.add_argument(
+        "--redirect_uri", metavar="<STR>", type=str, help="Use Specific Redirect Uri"
+    )
 
     # extract arguments from the command line
     try:
@@ -173,7 +177,15 @@ def main():
 
     # initialize a FamilySearch session and a family tree object
     print("Login to FamilySearch...", file=sys.stderr)
-    fs = Session(args.username, args.password, args.verbose, args.logfile, args.timeout)
+    fs = Session(
+        args.username,
+        args.password,
+        args.client_id or DEFAULT_CLIENT_ID,
+        args.redirect_uri or DEFAULT_REDIRECT_URI,
+        args.verbose,
+        args.logfile,
+        args.timeout,
+    )
     if not fs.logged:
         sys.exit(2)
     _ = fs._
@@ -182,9 +194,10 @@ def main():
     # check LDS account
     if args.get_ordinances:
         test = fs.get_url(
-            "/service/tree/tree-data/reservations/person/%s/ordinances" % fs.fid, {}
+            "/service/tree/tree-data/reservations/person/%s/ordinances" % fs.fid, {}, no_api=True
         )
-        if test["status"] != "OK":
+        if not test or test["status"] != "OK":
+            print("Need an LDS account")
             sys.exit(2)
 
     try:
