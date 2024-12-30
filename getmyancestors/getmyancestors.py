@@ -9,6 +9,7 @@ from urllib.parse import unquote
 import getpass
 import asyncio
 import argparse
+import json
 
 # local imports
 from getmyancestors.classes.tree import Tree
@@ -191,6 +192,28 @@ def main():
     _ = fs._
     tree = Tree(fs)
 
+    def get_img_from_ark():
+        print("getting ark url")
+        ark='/ark:/61903/1:1:6J8N-DN1C'
+        data=fs.get_url(ark, no_api=True)
+        with open('tmp.json', 'w') as f:
+            f.write(json.dumps(data, indent=2))
+        print(data['links'])
+        links=data['links']
+        if not 'image-name' in links.keys() and 'sourceDescriptions' in data.keys():
+            for sd in data ['sourceDescriptions']:
+                if sd['id'] == 'sd_da1':
+                    ark = sd['about'].replace('https://www.familysearch.org','')
+                    data=fs.get_url(ark, no_api=True)
+                    print(data['links'])
+                    links=data['links']
+        img_url=links['image-name']['href'].replace('/name','/dist.jpg')
+        print(img_url)
+        with open("tmp.jpg", "wb+") as f:
+            data=fs.get_url(img_url, no_base=True)
+            f.write(data.content)
+     #get_img_from_ark()
+            
     # check LDS account
     if args.get_ordinances:
         test = fs.get_url(

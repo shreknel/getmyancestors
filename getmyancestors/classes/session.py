@@ -145,7 +145,7 @@ class Session(requests.Session):
                 self.set_current()
                 break
 
-    def get_url(self, url, headers=None, no_api=False):
+    def get_url(self, url, headers=None, no_api=False, no_base=False):
         """retrieve JSON structure from a FamilySearch URL"""
         self.counter += 1
         if headers is None:
@@ -157,7 +157,7 @@ class Session(requests.Session):
         while True:
             try:
                 self.write_log("Downloading: " + url)
-                r = self.get(base + url, timeout=self.timeout, headers=headers)
+                r = self.get(url if no_base else (base+url), timeout=self.timeout, headers=headers)
             except requests.exceptions.ReadTimeout:
                 self.write_log("Read timed out")
                 continue
@@ -197,7 +197,10 @@ class Session(requests.Session):
                 time.sleep(self.timeout)
                 continue
             try:
-                return r.json()
+                if no_base:
+                    return r
+                else:
+                    return r.json()
             except Exception as e:
                 self.write_log("WARNING: corrupted file from %s, error: %s" % (url, e))
                 return None

@@ -4,6 +4,8 @@ import time
 import asyncio
 from urllib.parse import unquote
 
+import os.path
+
 # global imports
 import babelfish
 
@@ -81,6 +83,33 @@ class Source:
 
     counter = 0
 
+    def encode_source_url_to_filename(self, s):
+        return '/home/olivier/sources/'+self.encode_url(s)
+
+    def encode_url(self, url):
+        return url.replace("/", "$").replace(":", "#") + ".jpg"
+
+    def get_img_from_ark_url(self, url):
+        try:
+            ark_info=self.tree.fs.get_url(url, no_api=True)
+            #print(url)
+            links=ark_info['links']
+            if not 'image-name' in links.keys() and 'sourceDescriptions' in ark_info.keys():
+                for sd in ark_info['sourceDescriptions']:
+                    if sd['id'] == 'sd_da1':
+                        ark = sd['about'].replace('https://www.familysearch.org','')
+                        data=self.tree.fs.get_url(ark, no_api=True)
+                        links=data['links']
+                        #print(' redirecting ...')
+            img_url=links['image-name']['href'].replace('/name','/dist.jpg')
+            filename = self.encode_source_url_to_filename('https://familysearch.org'+url)
+            if not os.path.isfile(filename):
+                with open(filename, "wb+") as f:
+                    data=self.tree.fs.get_url(img_url, no_base=True)
+                    f.write(data.content)
+        except Exception as e:
+            print("Could not retrieve familysearch ark "+url)
+                    
     def __init__(self, data=None, tree=None, num=None):
         if num:
             self.num = num
@@ -106,6 +135,10 @@ class Source:
                 for n in data["notes"]:
                     if n["text"]:
                         self.notes.add(Note(n["text"], self.tree))
+            if self.url and 'https://familysearch.org/ark:/' in self.url:
+                url=self.url.replace('https://familysearch.org', '')
+                url=url.split('?')[0]
+                self.get_img_from_ark_url(url)
 
     def print(self, file=sys.stdout):
         """print Source in GEDCOM format"""
@@ -189,7 +222,24 @@ class Memorie:
     :param data: FS Memorie data
     """
 
-    def __init__(self, data=None):
+    def encode_source_url_to_filename(self, s):
+        return '/home/olivier/sources/'+self.encode_url(s)
+
+    def encode_url(self, url):
+        return url.replace("/", "$").replace(":", "#")
+
+    def get_img(self, url):
+        try:
+            filename = self.encode_source_url_to_filename(url)
+            if not os.path.isfile(filename):
+                with open(filename, "wb+") as f:
+                    data=self.tree.fs.get_url(url, no_base=True)
+                    f.write(data.content)
+        except Exception as e:
+            print("Could not retrieve familysearch url "+url+" " + str(e))
+
+    def __init__(self, data=None, tree=None):
+        self.tree = tree
         self.description = self.url = None
         if data and "links" in data:
             self.url = data["about"]
@@ -199,6 +249,9 @@ class Memorie:
                 self.description = (
                     "" if not self.description else self.description + "\n"
                 ) + data["descriptions"][0]["value"]
+            if self.url and 'familysearch.org' in self.url:
+                url=self.url.split('?')[0]
+                self.get_img(url)
 
     def print(self, file=sys.stdout):
         """print Memorie in GEDCOM format"""
@@ -382,7 +435,7 @@ class Indi:
                             )
                             self.notes.add(Note(text, self.tree))
                         else:
-                            self.memories.add(Memorie(x))
+                            self.memories.add(Memorie(x,self.tree))
 
     def add_fams(self, fams):
         """add family fid (for spouse or parent)"""
